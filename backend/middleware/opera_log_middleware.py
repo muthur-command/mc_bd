@@ -14,13 +14,6 @@ from backend.app.admin.service.opera_log_service import opera_log_service
 from backend.common.context import ctx
 from backend.common.enums import StatusType
 from backend.common.log import log
-from backend.common.prometheus.instruments import (
-    PROMETHEUS_EXCEPTION_COUNTER,
-    PROMETHEUS_REQUEST_COST_TIME_HISTOGRAM,
-    PROMETHEUS_REQUEST_COUNTER,
-    PROMETHEUS_REQUEST_IN_PROGRESS_GAUGE,
-    PROMETHEUS_RESPONSE_COUNTER,
-)
 from backend.common.queue import batch_dequeue
 from backend.common.response.response_code import StandardResponseCode
 from backend.core.conf import settings
@@ -49,10 +42,6 @@ class OperaLogMiddleware(BaseHTTPMiddleware):
         else:
             method = request.method
             args = await self.get_request_args(request)
-            PROMETHEUS_REQUEST_IN_PROGRESS_GAUGE.labels(
-                app_name=settings.GRAFANA_APP_NAME, method=method, path=path
-            ).inc()
-            PROMETHEUS_REQUEST_COUNTER.labels(app_name=settings.GRAFANA_APP_NAME, method=method, path=path).inc()
 
             # 执行请求
             code = 200
@@ -72,13 +61,11 @@ class OperaLogMiddleware(BaseHTTPMiddleware):
                     if exception:
                         code = exception.get('code')
                         msg = exception.get('msg')
-                        log.error(f'请求异常: {msg}')
-                        PROMETHEUS_EXCEPTION_COUNTER.labels(
-                            app_name=settings.GRAFANA_APP_NAME,
-                            method=method,
-                            path=path,
-                            exception_type=type(e).__name__,
-                        ).inc()
+                        # 404 多为接口不存在或资源不存在，用 warning 避免误报
+                        if code == StandardResponseCode.HTTP_404:
+                            log.warning(f'请求未找到: {msg}')
+                        else:
+                            log.error(f'请求异常: {msg}')
                         break
             except Exception as e:
                 elapsed = round((time.perf_counter() - ctx.perf_time) * 1000, 3)
@@ -87,66 +74,52 @@ class OperaLogMiddleware(BaseHTTPMiddleware):
                 status = StatusType.disable
                 error = e
                 log.error(f'请求异常: {e!s}')
-                PROMETHEUS_EXCEPTION_COUNTER.labels(
-                    app_name=settings.GRAFANA_APP_NAME, method=method, path=path, exception_type=type(e).__name__
-                ).inc()
-            else:
-                PROMETHEUS_REQUEST_COST_TIME_HISTOGRAM.labels(
-                    app_name=settings.GRAFANA_APP_NAME, method=method, path=path
-                ).observe(elapsed, exemplar={'TraceID': get_request_trace_id()})
             finally:
-                PROMETHEUS_RESPONSE_COUNTER.labels(
-                    app_name=settings.GRAFANA_APP_NAME, method=method, path=path, status_code=code
-                ).inc()
-                PROMETHEUS_REQUEST_IN_PROGRESS_GAUGE.labels(
-                    app_name=settings.GRAFANA_APP_NAME, method=method, path=path
-                ).dec()
+                # 此信息只能在请求后获取
+                route = request.scope.get('route')
+                summary = route.summary or '' if route else ''
 
-            # 此信息只能在请求后获取
-            route = request.scope.get('route')
-            summary = route.summary or '' if route else ''
+                try:
+                    # 此信息来源于 JWT 认证中间件
+                    username = request.user.username
+                except AttributeError:
+                    username = None
 
-            try:
-                # 此信息来源于 JWT 认证中间件
-                username = request.user.username
-            except AttributeError:
-                username = None
+                # 日志记录
+                log.debug(f'接口摘要：[{summary}]')
+                log.debug(f'请求地址：[{ctx.ip}]')
+                log.debug(f'请求参数：{args}')
+                log.info(f'{ctx.ip: <15} | {request.method: <8} | {code!s: <6} | {path} | {elapsed:.3f}ms')
+                if request.method != 'OPTIONS':
+                    log.debug('<-- 请求结束')
 
-            # 日志记录
-            log.debug(f'接口摘要：[{summary}]')
-            log.debug(f'请求地址：[{ctx.ip}]')
-            log.debug(f'请求参数：{args}')
-            log.info(f'{ctx.ip: <15} | {request.method: <8} | {code!s: <6} | {path} | {elapsed:.3f}ms')
-            if request.method != 'OPTIONS':
-                log.debug('<-- 请求结束')
+                # 日志创建
+                opera_log_in = CreateOperaLogParam(
+                    trace_id=get_request_trace_id(),
+                    username=username,
+                    method=method,
+                    title=summary,
+                    path=path,
+                    ip=ctx.ip,
+                    country=ctx.country,
+                    region=ctx.region,
+                    city=ctx.city,
+                    user_agent=ctx.user_agent,
+                    os=ctx.os,
+                    browser=ctx.browser,
+                    device=ctx.device,
+                    args=args,
+                    status=status,
+                    code=str(code),
+                    msg=msg,
+                    cost_time=elapsed,  # 可能和日志存在微小差异（可忽略）
+                    opera_time=ctx.start_time,
+                )
+                await self.opera_log_queue.put(opera_log_in)
 
-            # 日志创建
-            opera_log_in = CreateOperaLogParam(
-                trace_id=get_request_trace_id(),
-                username=username,
-                method=method,
-                title=summary,
-                path=path,
-                ip=ctx.ip,
-                country=ctx.country,
-                region=ctx.region,
-                city=ctx.city,
-                user_agent=ctx.user_agent,
-                os=ctx.os,
-                browser=ctx.browser,
-                device=ctx.device,
-                args=args,
-                status=status,
-                code=str(code),
-                msg=msg,
-                cost_time=elapsed,  # 可能和日志存在微小差异（可忽略）
-                opera_time=ctx.start_time,
-            )
-            await self.opera_log_queue.put(opera_log_in)
-
-            # 错误抛出
-            if error:
-                raise error from None
+                # 错误抛出
+                if error:
+                    raise error from None
 
         return response
 

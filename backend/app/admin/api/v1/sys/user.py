@@ -10,6 +10,8 @@ from backend.app.admin.schema.user import (
     ResetPasswordParam,
     UpdateUserParam,
 )
+from backend.app.admin.schema.user_preference import UpdateUserPreferenceParam, UserPreferenceSchema
+from backend.app.admin.service.user_preference_service import user_preference_service
 from backend.app.admin.service.user_service import user_service
 from backend.common.enums import UserPermissionType
 from backend.common.pagination import DependsPagination, PageData
@@ -25,6 +27,22 @@ router = APIRouter()
 @router.get('/me', summary='获取当前用户信息', dependencies=[DependsJwtAuth])
 async def get_current_user(request: Request) -> ResponseSchemaModel[GetCurrentUserInfoWithRelationDetail]:
     data = request.user.model_dump()
+    return response_base.success(data=data)
+
+
+@router.get('/me/preferences', summary='获取当前用户偏好', dependencies=[DependsJwtAuth])
+async def get_my_preferences(
+    db: CurrentSession, request: Request
+) -> ResponseSchemaModel[UserPreferenceSchema]:
+    data = await user_preference_service.get_preferences(db, request.user.id)
+    return response_base.success(data=data)
+
+
+@router.put('/me/preferences', summary='保存当前用户偏好', dependencies=[DependsJwtAuth])
+async def save_my_preferences(
+    db: CurrentSession, request: Request, obj: UpdateUserPreferenceParam
+) -> ResponseSchemaModel[UserPreferenceSchema]:
+    data = await user_preference_service.save_preferences(db, request.user.id, obj)
     return response_base.success(data=data)
 
 
@@ -55,12 +73,11 @@ async def get_user_roles(
 )
 async def get_users_paginated(
     db: CurrentSession,
-    dept: Annotated[int | None, Query(description='部门 ID')] = None,
     username: Annotated[str | None, Query(description='用户名')] = None,
-    phone: Annotated[str | None, Query(description='手机号')] = None,
+    email: Annotated[str | None, Query(description='邮箱')] = None,
     status: Annotated[int | None, Query(description='状态')] = None,
 ) -> ResponseSchemaModel[PageData[GetUserInfoWithRelationDetail]]:
-    page_data = await user_service.get_list(db=db, dept=dept, username=username, phone=phone, status=status)
+    page_data = await user_service.get_list(db=db, username=username, email=email, status=status)
     return response_base.success(data=page_data)
 
 
@@ -138,7 +155,9 @@ async def update_user_avatar(
     request: Request,
     avatar: Annotated[str, Body(embed=True, description='用户头像地址')],
 ) -> ResponseModel:
-    count = await user_service.update_avatar(db=db, user_id=request.user.id, avatar=avatar)
+    count, new_avatar_url = await user_service.update_avatar(db=db, user_id=request.user.id, avatar=avatar)
+    if count > 0 and new_avatar_url is not None:
+        return response_base.success(data={'avatar': new_avatar_url})
     if count > 0:
         return response_base.success()
     return response_base.fail()

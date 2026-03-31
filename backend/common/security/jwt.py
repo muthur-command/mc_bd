@@ -52,11 +52,11 @@ def jwt_decode(token: str) -> TokenPayload:
         user_id = payload.get('sub')
         expire = payload.get('exp')
         if not session_uuid or not user_id or not expire:
-            raise errors.TokenError(msg='Token 无效')
+            raise errors.TokenError(msg='error.token_invalid')
     except ExpiredSignatureError:
-        raise errors.TokenError(msg='Token 已过期')
+        raise errors.TokenError(msg='error.token_expired')
     except (JWTError, Exception):
-        raise errors.TokenError(msg='Token 无效')
+        raise errors.TokenError(msg='error.token_invalid')
     return TokenPayload(
         id=int(user_id),
         session_uuid=session_uuid,
@@ -83,6 +83,9 @@ async def create_access_token(user_id: int, *, multi_login: bool, **kwargs) -> A
 
     if not multi_login:
         await redis_client.delete_prefix(f'{settings.TOKEN_REDIS_PREFIX}:{user_id}')
+
+    # 登录时清除该用户的 JWT 用户缓存，确保 GET /me 返回最新用户信息
+    await redis_client.delete(f'{settings.JWT_USER_REDIS_PREFIX}:{user_id}')
 
     await redis_client.setex(
         f'{settings.TOKEN_REDIS_PREFIX}:{user_id}:{session_uuid}',
@@ -148,7 +151,7 @@ async def create_new_token(
     """
     redis_refresh_token = await redis_client.get(f'{settings.TOKEN_REFRESH_REDIS_PREFIX}:{user_id}:{session_uuid}')
     if not redis_refresh_token or redis_refresh_token != refresh_token:
-        raise errors.TokenError(msg='Refresh Token 已过期，请重新登录')
+        raise errors.TokenError(msg='error.refresh_token_expired')
 
     await redis_client.delete(f'{settings.TOKEN_REFRESH_REDIS_PREFIX}:{user_id}:{session_uuid}')
     await redis_client.delete(f'{settings.TOKEN_REDIS_PREFIX}:{user_id}:{session_uuid}')
@@ -186,7 +189,7 @@ def get_token(request: Request) -> str:
     authorization = request.headers.get('Authorization')
     scheme, token = get_authorization_scheme_param(authorization)
     if not authorization or scheme.lower() != 'bearer':
-        raise errors.TokenError(msg='Token 无效')
+        raise errors.TokenError(msg='error.token_invalid')
     return token
 
 
@@ -202,18 +205,13 @@ async def get_current_user(db: AsyncSession, pk: int) -> User:
 
     user = await user_dao.get_join(db, user_id=pk)
     if not user:
-        raise errors.TokenError(msg='Token 无效')
+        raise errors.TokenError(msg='error.token_invalid')
     if not user.status:
-        raise errors.AuthorizationError(msg='用户已被锁定，请联系系统管理员')
-    if user.dept_id:
-        if not user.dept.status:
-            raise errors.AuthorizationError(msg='用户所属部门已被锁定，请联系系统管理员')
-        if user.dept.del_flag:
-            raise errors.AuthorizationError(msg='用户所属部门已被删除，请联系系统管理员')
+        raise errors.AuthorizationError(msg='error.user_locked')
     if user.roles:
         role_status = [role.status for role in user.roles]
         if all(status == 0 for status in role_status):
-            raise errors.AuthorizationError(msg='用户所属角色已被锁定，请联系系统管理员')
+            raise errors.AuthorizationError(msg='error.role_locked')
     return user
 
 
@@ -266,10 +264,10 @@ async def jwt_authentication(token: str) -> GetUserInfoWithRelationDetail:
     user_id = token_payload.id
     redis_token = await redis_client.get(f'{settings.TOKEN_REDIS_PREFIX}:{user_id}:{token_payload.session_uuid}')
     if not redis_token:
-        raise errors.TokenError(msg='Token 已过期')
+        raise errors.TokenError(msg='error.token_expired')
 
     if token != redis_token:
-        raise errors.TokenError(msg='Token 已失效')
+        raise errors.TokenError(msg='error.token_invalidated')
 
     return await get_jwt_user(user_id)
 

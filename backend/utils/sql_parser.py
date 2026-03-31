@@ -6,6 +6,18 @@ from sqlparse import split
 from backend.common.exception import errors
 
 
+def _strip_leading_comments(stmt: str) -> str:
+    """去掉语句前导的空白行和 -- 注释行，便于校验首词"""
+    lines = stmt.splitlines()
+    start = 0
+    for i, line in enumerate(lines):
+        s = line.strip()
+        if s and not s.startswith('--'):
+            start = i
+            break
+    return '\n'.join(lines[start:]).strip()
+
+
 async def parse_sql_script(filepath: str) -> list[str]:
     """
     解析 SQL 脚本
@@ -23,8 +35,19 @@ async def parse_sql_script(filepath: str) -> list[str]:
             contents += additional_contents
 
     statements = split(contents)
+    allowed_starts = ('select', 'insert', 'create', 'drop', 'alter')
+    result = []
     for statement in statements:
-        if not any(statement.lower().startswith(_) for _ in ['select', 'insert']):
-            raise errors.RequestError(msg='SQL 脚本文件中存在非法操作，仅允许 SELECT 和 INSERT')
-
-    return statements
+        stmt_stripped = statement.strip()
+        if not stmt_stripped:
+            continue
+        # 去掉前导注释后再校验，避免 "-- 注释\nCREATE TABLE ..." 被拒
+        to_check = _strip_leading_comments(stmt_stripped)
+        if not to_check:
+            continue
+        if not any(to_check.lower().startswith(_) for _ in allowed_starts):
+            raise errors.RequestError(
+                msg='SQL 脚本文件中存在非法操作，仅允许 SELECT、INSERT、CREATE、DROP、ALTER'
+            )
+        result.append(statement)
+    return result

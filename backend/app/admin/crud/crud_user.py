@@ -6,18 +6,7 @@ from sqlalchemy import Select, delete, insert, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy_crud_plus import CRUDPlus, JoinConfig
 
-from backend.app.admin.model import (
-    DataRule,
-    DataScope,
-    Dept,
-    Menu,
-    Role,
-    User,
-    data_scope_rule,
-    role_data_scope,
-    role_menu,
-    user_role,
-)
+from backend.app.admin.model import Role, User, user_role
 from backend.app.admin.schema.user import (
     AddOAuth2UserParam,
     AddUserParam,
@@ -73,24 +62,21 @@ class CRUDUser(CRUDPlus[User]):
         """
         return await self.select_model_by_column(db, email=email)
 
-    async def get_select(self, dept: int | None, username: str | None, phone: str | None, status: int | None) -> Select:
+    async def get_select(self, username: str | None, email: str | None, status: int | None) -> Select:
         """
         获取用户列表查询表达式
 
-        :param dept: 部门 ID
         :param username: 用户名
-        :param phone: 电话号码
+        :param email: 邮箱
         :param status: 用户状态
         :return:
         """
         filters = {}
 
-        if dept:
-            filters['dept_id'] = dept
         if username:
             filters['username__like'] = f'%{username}%'
-        if phone:
-            filters['phone__like'] = f'%{phone}%'
+        if email:
+            filters['email__like'] = f'%{email}%'
         if status is not None:
             filters['status'] = status
 
@@ -98,7 +84,6 @@ class CRUDUser(CRUDPlus[User]):
             'id',
             'desc',
             join_conditions=[
-                JoinConfig(model=Dept, join_on=Dept.id == self.model.dept_id, fill_result=True),
                 JoinConfig(model=user_role, join_on=user_role.c.user_id == self.model.id),
                 JoinConfig(model=Role, join_on=Role.id == user_role.c.role_id, fill_result=True),
             ],
@@ -334,29 +319,13 @@ class CRUDUser(CRUDPlus[User]):
         result = await self.select_models(
             db,
             join_conditions=[
-                JoinConfig(model=Dept, join_on=Dept.id == self.model.dept_id, fill_result=True),
                 JoinConfig(model=user_role, join_on=user_role.c.user_id == self.model.id),
                 JoinConfig(model=Role, join_on=Role.id == user_role.c.role_id, fill_result=True),
-                JoinConfig(model=role_menu, join_on=role_menu.c.role_id == Role.id),
-                JoinConfig(model=Menu, join_on=Menu.id == role_menu.c.menu_id, fill_result=True),
-                JoinConfig(model=role_data_scope, join_on=role_data_scope.c.role_id == Role.id),
-                JoinConfig(model=DataScope, join_on=DataScope.id == role_data_scope.c.data_scope_id, fill_result=True),
-                JoinConfig(model=data_scope_rule, join_on=data_scope_rule.c.data_scope_id == DataScope.id),
-                JoinConfig(model=DataRule, join_on=DataRule.id == data_scope_rule.c.data_rule_id, fill_result=True),
             ],
             **filters,
         )
 
-        return select_join_serialize(
-            result,
-            relationships=[
-                'User-m2o-Dept',
-                'User-m2m-Role',
-                'Role-m2m-Menu',
-                'Role-m2m-DataScope:scopes',
-                'DataScope-m2m-DataRule:rules',
-            ],
-        )
+        return select_join_serialize(result, relationships=['User-m2m-Role'])
 
 
 user_dao: CRUDUser = CRUDUser(User)

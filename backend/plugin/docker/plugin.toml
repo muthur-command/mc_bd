@@ -1,0 +1,15 @@
+[plugin]
+summary = 'Docker容器管理'
+version = '0.0.1'
+description = 'Docker容器、镜像、堆栈、网络、卷管理和系统信息查询'
+author = 'morty'
+tags = ['other']
+database = ['mysql', 'postgresql']
+show_in_sidebar = true
+install_sidebar_group = 'Apps'
+sidebar_icon = 'whale'
+
+[app]
+router = ['v1']
+
+[settings]

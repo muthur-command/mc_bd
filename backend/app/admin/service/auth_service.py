@@ -3,7 +3,6 @@ from fastapi.security import HTTPBasicCredentials
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.background import BackgroundTask, BackgroundTasks
 
-from backend.app.admin.crud.crud_menu import menu_dao
 from backend.app.admin.crud.crud_user import user_dao
 from backend.app.admin.model import User
 from backend.app.admin.schema.token import GetLoginToken, GetNewToken
@@ -16,7 +15,7 @@ from backend.common.enums import LoginLogStatusType
 from backend.common.exception import errors
 from backend.common.i18n import t
 from backend.common.log import log
-from backend.common.response.response_code import CustomErrorCode
+from backend.common.response.response_code import CustomErrorCode, StandardResponseCode
 from backend.common.security.jwt import (
     create_access_token,
     create_new_token,
@@ -46,13 +45,16 @@ class AuthService:
         """
         user = await user_dao.get_by_username(db, username)
         if not user:
-            raise errors.NotFoundError(msg='用户名或密码有误')
+            raise errors.RequestError(
+                code=StandardResponseCode.HTTP_401,
+                msg='error.username_not_found',
+            )
 
         await password_security_service.check_status(user.id, user.status)
 
         if user.password is None or not password_verify(password, user.password):
             await password_security_service.handle_login_failure(db, user.id)
-            raise errors.AuthorizationError(msg='用户名或密码有误')
+            raise errors.AuthorizationError(msg='error.username_or_password_wrong')
 
         days_remaining = await password_security_service.check_password_expiry_status(
             db, user.last_password_changed_time
@@ -138,21 +140,33 @@ class AuthService:
                 expires=timezone.to_utc(refresh_token_data.refresh_token_expire_time),
                 httponly=True,
             )
-        except errors.NotFoundError as e:
-            log.error('登陆错误: 用户名不存在')
-            raise errors.NotFoundError(msg=e.msg)
-        except (errors.RequestError, errors.CustomError) as e:
+        except (errors.RequestError, errors.CustomError, errors.AuthorizationError) as e:
+            is_captcha_error = (
+                isinstance(e, errors.CustomError)
+                and e.code == CustomErrorCode.CAPTCHA_ERROR.code
+            )
             if not user:
+                log.error('登陆错误: 用户名不存在')
+            elif is_captcha_error:
+                log.error('登陆错误: 验证码错误')
+            else:
                 log.error('登陆错误: 用户密码有误')
+            # 确保验证码错误返回验证码相关文案，避免被误展示为用户名/密码错误
+            display_msg = t('error.captcha.error') if is_captcha_error else e.msg
             task = BackgroundTask(
                 login_log_service.create,
                 user_uuid=user.uuid if user else uuid4_str(),
                 username=obj.username,
                 login_time=timezone.now(),
                 status=LoginLogStatusType.fail.value,
-                msg=e.msg,
+                msg=display_msg,
             )
-            raise errors.RequestError(code=e.code, msg=e.msg, background=task)
+            # 登录失败统一返回 401，便于前端展示后端错误信息
+            raise errors.RequestError(
+                code=StandardResponseCode.HTTP_401,
+                msg=display_msg,
+                background=task,
+            )
         except Exception as e:
             log.error(f'登陆错误: {e}')
             raise
@@ -183,21 +197,7 @@ class AuthService:
         :param request: FastAPI 请求对象
         :return:
         """
-        codes = set()
-        if request.user.is_superuser:
-            menus = await menu_dao.get_all(db, None, None)
-            for menu in menus:
-                if menu.perms:
-                    codes.add(*menu.perms.split(','))
-        else:
-            roles = request.user.roles
-            if roles:
-                for role in roles:
-                    for menu in role.menus:
-                        if menu.perms:
-                            codes.add(*menu.perms.split(','))
-
-        return list(codes)
+        return []
 
     @staticmethod
     async def refresh_token(*, db: AsyncSession, request: Request) -> GetNewToken:
@@ -210,16 +210,16 @@ class AuthService:
         """
         refresh_token = request.cookies.get(settings.COOKIE_REFRESH_TOKEN_KEY)
         if not refresh_token:
-            raise errors.RequestError(msg='Refresh Token 已过期，请重新登录')
+            raise errors.RequestError(msg='error.refresh_token_expired')
         token_payload = jwt_decode(refresh_token)
 
         user = await user_dao.get(db, token_payload.id)
         if not user:
-            raise errors.NotFoundError(msg='用户不存在')
+            raise errors.NotFoundError(msg='error.user_not_found')
         if not user.status:
-            raise errors.AuthorizationError(msg='用户已被锁定, 请联系统管理员')
+            raise errors.AuthorizationError(msg='error.user_locked_contact_admin')
         if not user.is_multi_login and await redis_client.get_prefix(f'{settings.TOKEN_REDIS_PREFIX}:{user.id}:*'):
-            raise errors.ForbiddenError(msg='此用户已在异地登录，请重新登录并及时修改密码')
+            raise errors.ForbiddenError(msg='error.user_remote_login')
         new_token = await create_new_token(
             refresh_token,
             token_payload.session_uuid,

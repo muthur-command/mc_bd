@@ -1,0 +1,14 @@
+[plugin]
+summary = '卡片管理'
+version = '0.0.1'
+description = '插件管理器中的卡片管理插件，提供卡片的列表与维护'
+author = 'morty'
+tags = ['internal']
+database = ['mysql', 'postgresql']
+show_in_sidebar = true
+install_sidebar_group = 'Apps'
+
+[app]
+router = ['v1']
+
+[settings]

@@ -5,6 +5,7 @@
 venv/
 .venv/
 .python-version
+__pycache__/
 .ruff_cache/
 .pytest_cache/
 .claude/

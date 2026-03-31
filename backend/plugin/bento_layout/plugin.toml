@@ -1,0 +1,14 @@
+[plugin]
+summary = 'Bento 布局管理'
+version = '1.0.0'
+description = '按页面 ID 保存与加载 Bento 网格布局（卡片位置与尺寸等 JSON）'
+author = 'morty'
+tags = ['internal']
+database = ['mysql', 'postgresql']
+show_in_sidebar = false
+install_sidebar_group = 'Apps'
+
+[app]
+router = ['v1']
+
+[settings]

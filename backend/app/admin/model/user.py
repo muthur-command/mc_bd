@@ -22,7 +22,7 @@ class User(Base):
     salt: Mapped[bytes | None] = mapped_column(sa.LargeBinary(255), comment='加密盐')
     email: Mapped[str | None] = mapped_column(sa.String(256), default=None, unique=True, index=True, comment='邮箱')
     phone: Mapped[str | None] = mapped_column(sa.String(11), default=None, comment='手机号')
-    avatar: Mapped[str | None] = mapped_column(sa.String(256), default=None, comment='头像')
+    avatar: Mapped[str | None] = mapped_column(sa.String(5000), default=None, comment='头像 URL 或 data URI')
     status: Mapped[int] = mapped_column(default=1, index=True, comment='用户账号状态(0停用 1正常)')
     is_superuser: Mapped[bool] = mapped_column(default=False, comment='超级权限(0否 1是)')
     is_staff: Mapped[bool] = mapped_column(default=False, comment='后台管理登陆(0否 1是)')
@@ -34,6 +34,3 @@ class User(Base):
     last_password_changed_time: Mapped[datetime | None] = mapped_column(
         TimeZone, init=False, default_factory=timezone.now, comment='上次密码变更时间'
     )
-
-    # 逻辑外键
-    dept_id: Mapped[int | None] = mapped_column(sa.BigInteger, default=None, comment='部门关联ID')

@@ -38,8 +38,8 @@ class Settings(BaseSettings):
 
     # FastAPI
     FASTAPI_API_V1_PATH: str = '/api/v1'
-    FASTAPI_TITLE: str = 'fba'
-    FASTAPI_DESCRIPTION: str = 'FastAPI Best Architecture'
+    FASTAPI_TITLE: str = 'mc backend api'
+    FASTAPI_DESCRIPTION: str = 'MUTHUR Command Backend API'
     FASTAPI_DOCS_URL: str = '/docs'
     FASTAPI_REDOC_URL: str = '/redoc'
     FASTAPI_OPENAPI_URL: str | None = '/openapi'
@@ -55,7 +55,7 @@ class Settings(BaseSettings):
     # 数据库
     DATABASE_ECHO: bool | Literal['debug'] = False
     DATABASE_POOL_ECHO: bool | Literal['debug'] = False
-    DATABASE_SCHEMA: str = 'fba'
+    DATABASE_SCHEMA: str = 'mc'
     DATABASE_CHARSET: str = 'utf8mb4'
     DATABASE_PK_MODE: Literal['autoincrement', 'snowflake'] = 'autoincrement'
 
@@ -73,7 +73,7 @@ class Settings(BaseSettings):
     SNOWFLAKE_WORKER_ID: int | None = None
 
     # Snowflake
-    SNOWFLAKE_REDIS_PREFIX: str = 'fba:snowflake'
+    SNOWFLAKE_REDIS_PREFIX: str = 'mc:snowflake'
     SNOWFLAKE_HEARTBEAT_INTERVAL_SECONDS: int = 30
     SNOWFLAKE_NODE_TTL_SECONDS: int = 60
 
@@ -82,12 +82,12 @@ class Settings(BaseSettings):
 
     # Token
     TOKEN_ALGORITHM: str = 'HS256'
-    TOKEN_EXPIRE_SECONDS: int = 60 * 60 * 24  # 1 天
-    TOKEN_REFRESH_EXPIRE_SECONDS: int = 60 * 60 * 24 * 7  # 7 天
-    TOKEN_REDIS_PREFIX: str = 'fba:token'
-    TOKEN_EXTRA_INFO_REDIS_PREFIX: str = 'fba:token_extra_info'
-    TOKEN_ONLINE_REDIS_PREFIX: str = 'fba:token_online'
-    TOKEN_REFRESH_REDIS_PREFIX: str = 'fba:refresh_token'
+    TOKEN_EXPIRE_SECONDS: int = 60 * 60 * 2  # 2 小时
+    TOKEN_REFRESH_EXPIRE_SECONDS: int = 60 * 60 * 24 * 1  # 1 天
+    TOKEN_REDIS_PREFIX: str = 'mc:token'
+    TOKEN_EXTRA_INFO_REDIS_PREFIX: str = 'mc:token_extra_info'
+    TOKEN_ONLINE_REDIS_PREFIX: str = 'mc:token_online'
+    TOKEN_REFRESH_REDIS_PREFIX: str = 'mc:refresh_token'
     TOKEN_REQUEST_PATH_EXCLUDE: list[str] = [  # JWT / RBAC 路由白名单
         f'{FASTAPI_API_V1_PATH}/auth/login',
     ]
@@ -96,7 +96,7 @@ class Settings(BaseSettings):
     ]
 
     # 用户安全
-    USER_LOCK_REDIS_PREFIX: str = 'fba:user:lock'
+    USER_LOCK_REDIS_PREFIX: str = 'mc:user:lock'
     USER_LOCK_THRESHOLD: int = 5  # 用户密码错误锁定阈值，0 表示禁用锁定
     USER_LOCK_SECONDS: int = 60 * 5  # 5 分钟
     USER_PASSWORD_EXPIRY_DAYS: int = 365  # 用户密码有效期，0 表示永不过期
@@ -108,22 +108,19 @@ class Settings(BaseSettings):
 
     # 登录
     LOGIN_CAPTCHA_ENABLED: bool = True
-    LOGIN_CAPTCHA_REDIS_PREFIX: str = 'fba:login:captcha'
+    LOGIN_CAPTCHA_REDIS_PREFIX: str = 'mc:login:captcha'
     LOGIN_CAPTCHA_EXPIRE_SECONDS: int = 60 * 5  # 5 分钟
-    LOGIN_FAILURE_PREFIX: str = 'fba:login:failure'
+    LOGIN_FAILURE_PREFIX: str = 'mc:login:failure'
 
     # JWT
-    JWT_USER_REDIS_PREFIX: str = 'fba:user'
+    JWT_USER_REDIS_PREFIX: str = 'mc:user'
 
     # RBAC
     RBAC_ROLE_MENU_MODE: bool = True
-    RBAC_ROLE_MENU_EXCLUDE: list[str] = [
-        'sys:monitor:redis',
-        'sys:monitor:server',
-    ]
+    RBAC_ROLE_MENU_EXCLUDE: list[str] = []  # sys:monitor:redis、sys:monitor:server 已随 system_monitor 插件迁移
 
     # Cookie
-    COOKIE_REFRESH_TOKEN_KEY: str = 'fba_refresh_token'
+    COOKIE_REFRESH_TOKEN_KEY: str = 'mc_refresh_token'
     COOKIE_REFRESH_TOKEN_EXPIRE_SECONDS: int = 60 * 60 * 24 * 7  # 7 天
 
     # 数据权限
@@ -151,10 +148,10 @@ class Settings(BaseSettings):
     MIDDLEWARE_CORS: bool = True
 
     # 请求限制配置
-    REQUEST_LIMITER_REDIS_PREFIX: str = 'fba:limiter'
+    REQUEST_LIMITER_REDIS_PREFIX: str = 'mc:limiter'
 
     # 时间配置
-    DATETIME_TIMEZONE: str = 'Asia/Shanghai'
+    DATETIME_TIMEZONE: str = 'America/Los_Angeles'
     DATETIME_FORMAT: str = '%Y-%m-%d %H:%M:%S'
 
     # 文件上传
@@ -175,7 +172,7 @@ class Settings(BaseSettings):
 
     # IP 定位配置
     IP_LOCATION_PARSE: Literal['online', 'offline', 'false'] = 'offline'
-    IP_LOCATION_REDIS_PREFIX: str = 'fba:ip:location'
+    IP_LOCATION_REDIS_PREFIX: str = 'mc:ip:location'
     IP_LOCATION_EXPIRE_SECONDS: int = 60 * 60 * 24  # 1 天
 
     # Trace ID
@@ -194,8 +191,8 @@ class Settings(BaseSettings):
     # 日志（文件）
     LOG_FILE_ACCESS_LEVEL: str = 'INFO'
     LOG_FILE_ERROR_LEVEL: str = 'ERROR'
-    LOG_ACCESS_FILENAME: str = 'fba_access.log'
-    LOG_ERROR_FILENAME: str = 'fba_error.log'
+    LOG_ACCESS_FILENAME: str = 'mc_access.log'
+    LOG_ERROR_FILENAME: str = 'mc_error.log'
 
     # 操作日志
     OPERA_LOG_PATH_EXCLUDE: list[str] = [
@@ -220,15 +217,10 @@ class Settings(BaseSettings):
     PLUGIN_PIP_CHINA: bool = True
     PLUGIN_PIP_INDEX_URL: str = 'https://mirrors.aliyun.com/pypi/simple/'
     PLUGIN_PIP_MAX_RETRY: int = 3
-    PLUGIN_REDIS_PREFIX: str = 'fba:plugin'
+    PLUGIN_REDIS_PREFIX: str = 'mc:plugin'
 
     # I18n 配置
-    I18N_DEFAULT_LANGUAGE: str = 'zh-CN'
-
-    # Grafana
-    GRAFANA_METRICS: bool = False
-    GRAFANA_APP_NAME: str = 'fba_server'
-    GRAFANA_OTLP_GRPC_ENDPOINT: str = 'fba_alloy:4317'
+    I18N_DEFAULT_LANGUAGE: str = 'en'
 
     ##################################################
     # [ App ] task
@@ -237,7 +229,7 @@ class Settings(BaseSettings):
     CELERY_BROKER_REDIS_DATABASE: int
 
     # .env RabbitMQ
-    # docker run -d --hostname fba-mq --name fba-mq  -p 5672:5672 -p 15672:15672 rabbitmq:latest
+    # docker run -d --hostname mc-mq --name mc-mq  -p 5672:5672 -p 15672:15672 rabbitmq:latest
     CELERY_RABBITMQ_HOST: str
     CELERY_RABBITMQ_PORT: int
     CELERY_RABBITMQ_USERNAME: str
@@ -246,13 +238,13 @@ class Settings(BaseSettings):
     # 基础配置
     CELERY_BROKER: Literal['rabbitmq', 'redis'] = 'redis'
     CELERY_RABBITMQ_VHOST: str = ''
-    CELERY_REDIS_PREFIX: str = 'fba:celery'
+    CELERY_REDIS_PREFIX: str = 'mc:celery'
     CELERY_TASK_MAX_RETRIES: int = 5
 
     ##################################################
     # [ Plugin ] code_generator
     ##################################################
-    CODE_GENERATOR_DOWNLOAD_ZIP_FILENAME: str
+    CODE_GENERATOR_DOWNLOAD_ZIP_FILENAME: str = 'code.zip'
 
     ##################################################
     # [ Plugin ] oauth2

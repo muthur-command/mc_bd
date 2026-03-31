@@ -1,0 +1,14 @@
+[plugin]
+summary = '系统监控'
+version = '0.0.1'
+description = '服务器 CPU、内存、磁盘与系统信息及 Redis 监控，供前端系统监控页使用'
+author = 'morty'
+tags = ['internal']
+database = []
+show_in_sidebar = true
+install_sidebar_group = 'Dashboards'
+
+[app]
+router = ['v1']
+
+[settings]

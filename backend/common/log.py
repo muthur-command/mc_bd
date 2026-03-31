@@ -3,6 +3,7 @@ import logging
 import os
 import re
 import sys
+from pathlib import Path
 
 from loguru import logger
 
@@ -95,14 +96,32 @@ def setup_logging() -> None:
     )
 
 
-def set_custom_logfile() -> None:
-    """设置自定义日志文件"""
-    if not os.path.exists(LOG_DIR):
-        os.mkdir(LOG_DIR)
+def _log_dir_files_writable(access_path: Path, error_path: Path) -> bool:
+    """日志目录可创建且两个日志文件可追加写入（避免 root 创建的文件导致 PermissionError 直接崩溃）"""
+    try:
+        LOG_DIR.mkdir(parents=True, exist_ok=True)
+    except OSError:
+        return False
+    for path in (access_path, error_path):
+        try:
+            with open(path, 'a', encoding='utf-8'):
+                pass
+        except OSError:
+            return False
+    return True
 
-    # 日志文件
+
+def set_custom_logfile() -> None:
+    """设置自定义日志文件（无权限时跳过文件落盘，仅保留控制台输出）"""
     log_access_file = LOG_DIR / settings.LOG_ACCESS_FILENAME
     log_error_file = LOG_DIR / settings.LOG_ERROR_FILENAME
+
+    if not _log_dir_files_writable(log_access_file, log_error_file):
+        sys.stderr.write(
+            f'[mc] 无法写入日志目录或文件 {LOG_DIR}（常见于曾用 root 启动导致属主为 root）。'
+            f'已跳过文件日志，仅输出到控制台。可执行: sudo chown -R "$(whoami)" {LOG_DIR}\n',
+        )
+        return
 
     # 日志压缩回调
     def compression(filepath: str) -> str:

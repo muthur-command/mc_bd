@@ -56,6 +56,15 @@ class I18n:
                     case 'yaml' | 'yml':
                         self.locales[lang] = yaml.full_load(f.read())
 
+        # 语言回退：默认 'en' 时若没有 en 文件，用 en-US 等
+        if settings.I18N_DEFAULT_LANGUAGE not in self.locales:
+            fallback = next(
+                (k for k in self.locales if k.startswith(settings.I18N_DEFAULT_LANGUAGE + '-')),
+                None,
+            )
+            if fallback:
+                self.locales[settings.I18N_DEFAULT_LANGUAGE] = self.locales[fallback]
+
     def t(self, key: str, default: Any | None = None, **kwargs) -> str:
         """
         翻译函数

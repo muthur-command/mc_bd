@@ -1,0 +1,14 @@
+[plugin]
+summary = 'Apprise 通知'
+version = '1.0.0'
+description = '基于 Apprise 管理通知通道（URL 配置）、测试发送与通知历史'
+author = 'morty'
+tags = ['internal']
+database = ['mysql', 'postgresql']
+show_in_sidebar = true
+install_sidebar_group = 'Apps'
+
+[app]
+router = ['v1']
+
+[settings]

@@ -58,13 +58,17 @@ async def _validation_exception_handler(exc: RequestValidationError | Validation
         errors.append(error)
     error = errors[0]
     if error.get('type') == 'json_invalid':
-        message = 'json解析失败'
+        message = t('request.json_parse_failed')
     else:
         error_input = error.get('input')
         field = str(error.get('loc')[-1])
         error_msg = error.get('msg')
-        message = f'{field} {error_msg}，输入：{error_input}' if settings.ENVIRONMENT == 'dev' else error_msg
-    msg = f'请求参数非法: {message}'
+        message = (
+            t('request.validation_field_error', field=field, msg=error_msg, input=error_input)
+            if settings.ENVIRONMENT == 'dev'
+            else error_msg
+        )
+    msg = t('request.invalid_params', message=message)
     data = {'errors': errors} if settings.ENVIRONMENT == 'dev' else None
     content = {
         'code': StandardResponseCode.HTTP_422,
@@ -86,15 +90,20 @@ def register_exception(app: FastAPI) -> None:  # noqa: C901
         :param exc: HTTP 异常
         :return:
         """
+        detail_msg = str(exc.detail) if exc.detail is not None else ''
+        msg = t(detail_msg) if detail_msg else ''
         if settings.ENVIRONMENT == 'dev':
             content = {
                 'code': exc.status_code,
-                'msg': exc.detail,
+                'msg': msg,
                 'data': None,
             }
         else:
-            res = response_base.fail(res=CustomResponseCode.HTTP_400)
-            content = res.model_dump()
+            content = {
+                'code': exc.status_code,
+                'msg': msg or t('response.error'),
+                'data': None,
+            }
         ctx.__request_http_exception__ = content
         content.update(trace_id=get_request_trace_id())
         return MsgSpecJSONResponse(
@@ -161,7 +170,7 @@ def register_exception(app: FastAPI) -> None:  # noqa: C901
         """
         content = {
             'code': exc.code,
-            'msg': str(exc.msg),
+            'msg': t(str(exc.msg)) if exc.msg else '',
             'data': exc.data or None,
         }
         ctx.__request_custom_exception__ = content
@@ -210,7 +219,7 @@ def register_exception(app: FastAPI) -> None:  # noqa: C901
             if isinstance(exc, BaseExceptionError):
                 content = {
                     'code': exc.code,
-                    'msg': exc.msg,
+                    'msg': t(str(exc.msg)) if exc.msg else '',
                     'data': exc.data,
                 }
             else:

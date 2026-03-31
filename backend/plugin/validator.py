@@ -9,7 +9,7 @@ from backend.plugin.errors import PluginConfigError
 from backend.utils.pattern_validate import match_string
 
 # 支持的标签类型
-_VALID_TAGS = frozenset({'ai', 'mcp', 'agent', 'auth', 'storage', 'notification', 'task', 'payment', 'other'})
+_VALID_TAGS = frozenset({'ai', 'mcp', 'agent', 'auth', 'storage', 'notification', 'task', 'payment', 'other', 'internal'})
 
 # 支持的数据库类型
 _VALID_DATABASES = frozenset({'mysql', 'postgresql'})

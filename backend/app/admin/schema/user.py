@@ -1,13 +1,16 @@
 from datetime import datetime
-from typing import Annotated, Any
+from typing import Any
 
-from pydantic import ConfigDict, Field, HttpUrl, PlainSerializer, model_validator
+from pydantic import ConfigDict, Field, model_validator
 from typing_extensions import Self
 
-from backend.app.admin.schema.dept import GetDeptDetail
-from backend.app.admin.schema.role import GetRoleWithRelationDetail
+from backend.app.admin.schema.role import GetRoleDetail
 from backend.common.enums import StatusType
-from backend.common.schema import CustomEmailStr, CustomPhoneNumber, SchemaBase, ser_string
+from backend.common.schema import CustomEmailStr, CustomPhoneNumber, SchemaBase
+from backend.core.conf import settings
+
+# 支持 base64 data URI 时的最大长度（约 5MB 图片的 base64）
+AVATAR_INPUT_MAX_LENGTH = int(settings.UPLOAD_IMAGE_SIZE_MAX * 4 / 3) + 1024
 
 
 class AuthSchemaBase(SchemaBase):
@@ -28,9 +31,9 @@ class AddUserParam(AuthSchemaBase):
     """添加用户参数"""
 
     nickname: str | None = Field(None, description='昵称')
+    avatar: str | None = Field(None, max_length=AVATAR_INPUT_MAX_LENGTH, description='头像：URL 或 data URI（Boring 生成 / 本地上传）')
     email: CustomEmailStr | None = Field(None, description='邮箱')
     phone: CustomPhoneNumber | None = Field(None, description='手机号码')
-    dept_id: int = Field(description='部门 ID')
     roles: list[int] = Field(description='角色 ID 列表')
 
 
@@ -47,7 +50,7 @@ class AddOAuth2UserParam(AuthSchemaBase):
     password: str | None = Field(None, description='密码')
     nickname: str | None = Field(None, description='昵称')
     email: CustomEmailStr | None = Field(None, description='邮箱')
-    avatar: Annotated[HttpUrl, PlainSerializer(ser_string)] | None = Field(None, description='头像地址')
+    avatar: str | None = Field(None, max_length=AVATAR_INPUT_MAX_LENGTH, description='头像 URL 或 data URI')
 
 
 class ResetPasswordParam(SchemaBase):
@@ -61,10 +64,9 @@ class ResetPasswordParam(SchemaBase):
 class UserInfoSchemaBase(SchemaBase):
     """用户信息基础模型"""
 
-    dept_id: int | None = Field(None, description='部门 ID')
     username: str = Field(description='用户名')
     nickname: str = Field(description='昵称')
-    avatar: Annotated[HttpUrl, PlainSerializer(ser_string)] | None = Field(None, description='头像地址')
+    avatar: str | None = Field(None, max_length=AVATAR_INPUT_MAX_LENGTH, description='头像：URL 或 data URI')
     email: CustomEmailStr | None = Field(None, description='邮箱')
     phone: CustomPhoneNumber | None = Field(None, description='手机号')
 
@@ -80,7 +82,6 @@ class GetUserInfoDetail(UserInfoSchemaBase):
 
     model_config = ConfigDict(from_attributes=True)
 
-    dept_id: int | None = Field(None, description='部门 ID')
     id: int = Field(description='用户 ID')
     uuid: str = Field(description='用户 UUID')
     status: StatusType = Field(description='状态')
@@ -96,8 +97,7 @@ class GetUserInfoWithRelationDetail(GetUserInfoDetail):
 
     model_config = ConfigDict(from_attributes=True)
 
-    dept: GetDeptDetail | None = Field(None, description='部门信息')
-    roles: list[GetRoleWithRelationDetail] = Field(description='角色列表')
+    roles: list[GetRoleDetail] = Field(description='角色列表')
 
 
 class GetCurrentUserInfoWithRelationDetail(GetUserInfoWithRelationDetail):
@@ -105,17 +105,13 @@ class GetCurrentUserInfoWithRelationDetail(GetUserInfoWithRelationDetail):
 
     model_config = ConfigDict(from_attributes=True)
 
-    dept: str | None = Field(None, description='部门名称')
     roles: list[str] = Field(description='角色名称列表')
 
     @model_validator(mode='before')
     @classmethod
     def handel(cls, data: Any) -> Self:
-        """处理部门和角色数据"""
-        dept = data['dept']
-        if dept:
-            data['dept'] = dept['name']
-        roles = data['roles']
+        """处理角色数据"""
+        roles = data.get('roles')
         if roles:
             data['roles'] = [role['name'] for role in roles]
         return data

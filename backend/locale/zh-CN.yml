@@ -4,6 +4,50 @@ error:
     invalid: 验证码无效，请重新获取
     expired: 验证码已过期，请重新获取
   language_not_found: 当前语言包未初始化或不存在
+  # 业务错误（接口返回）
+  user_not_found: 用户不存在
+  username_exists: 用户名已注册
+  password_required: 密码不允许为空
+  role_not_found: 角色不存在
+  forbidden_modify_self_permission: 禁止修改自身权限
+  permission_type_not_found: 权限类型不存在
+  captcha_expired: 验证码已失效，请重新获取
+  old_password_wrong: 原密码错误
+  password_mismatch: 两次密码输入不一致
+  plugin_install_dev_only: 禁止在非开发环境下安装插件
+  plugin_zip_empty: ZIP 压缩包不能为空
+  plugin_git_url_required: Git 仓库地址不能为空
+  plugin_uninstall_dev_only: 禁止在非开发环境下卸载插件
+  plugin_not_found: 插件不存在
+  plugin_remote_fetch_failed: 获取远程插件列表失败
+  token_invalid: Token 无效
+  token_expired: Token 已过期
+  refresh_token_expired: Refresh Token 已过期，请重新登录
+  user_locked: 用户已被锁定，请联系系统管理员
+  role_locked: 用户所属角色已被锁定，请联系系统管理员
+  token_invalidated: Token 已失效
+  user_no_role: 用户未分配角色，请联系系统管理员
+  user_backend_forbidden: 用户已被禁止后台管理操作，请联系系统管理员
+  permission_check_failed: 权限校验失败，请联系系统管理员
+  username_or_password_wrong: 用户名或密码有误
+  username_not_found: 用户名不存在
+  user_locked_contact_admin: 用户已被锁定，请联系系统管理员
+  user_remote_login: 此用户已在异地登录，请重新登录并及时修改密码
+  bento_layout:
+    missing_page_or_layout: 缺少 pageId 或 layout 数据
+    not_found: 未找到已保存的布局
+  apprise_notify:
+    channel_not_found: 通知通道不存在
+    invalid_url: Apprise URL 无效
+    channel_disabled: 通知通道已禁用
+    send_failed: 通知发送失败
+    no_channels: 未提供通道 ID
+  invalid_avatar_format: 头像格式无效，需要 data URI 格式
+  avatar_format_not_supported: 头像图片格式不支持
+  avatar_size_exceeded: 头像文件大小超出限制
+  invalid_avatar_base64: 头像 base64 数据无效
+  avatar_save_failed: 头像保存失败
+  avatar_url_too_long: 头像 URL 过长
 pydantic:
   # 自定义验证错误信息，参考：
   # https://github.com/pydantic/pydantic-core/blob/a5cb7382643415b716b1a7a5392914e50f726528/tests/test_errors.py#L266
@@ -108,7 +152,116 @@ pydantic:
 response:
   error: 请求错误
   success: 请求成功
+  server_error: 服务器内部错误
+request:
+  invalid_params: "请求参数非法: {message}"
+  json_parse_failed: JSON 解析失败
+  validation_field_error: '{field} {msg}，输入：{input}'
+# 操作日志列表「操作标题」的国际化（与接口 summary 一致，用于列表展示）
+api:
+  summary:
+    # 操作日志
+    opera_log_get_paginated: 分页获取操作日志
+    opera_log_delete_batch: 批量删除操作日志
+    opera_log_clear_all: 清空操作日志
+    # 登录日志
+    login_log_get_paginated: 分页获取登录日志
+    login_log_delete_batch: 批量删除登录日志
+    login_log_clear_all: 清空登录日志
+    # 用户
+    user_get_me: 获取当前用户信息
+    user_get_preferences: 获取当前用户偏好
+    user_put_preferences: 保存当前用户偏好
+    user_get_by_pk: 获取用户信息
+    user_get_roles: 获取用户所有角色
+    user_get_paginated: 分页获取所有用户
+    user_create: 创建用户
+    user_update: 更新用户信息
+    user_update_permissions: 更新用户权限
+    user_update_my_password: 更新当前用户密码
+    user_reset_password: 重置用户密码
+    user_update_nickname: 更新当前用户昵称
+    user_update_avatar: 更新当前用户头像
+    user_update_email: 更新当前用户邮箱
+    user_delete: 删除用户
+    # 角色
+    role_get_all: 获取所有角色
+    role_get_detail: 获取角色详情
+    role_get_paginated: 分页获取所有角色
+    role_create: 创建角色
+    role_update: 更新角色
+    role_delete_batch: 批量删除角色
+    # 插件
+    plugin_get_all: 获取所有插件
+    plugin_get_changed: 是否存在插件变更
+    plugin_get_remote_url: 获取远程插件列表地址（单条，兼容）
+    plugin_get_remote_urls: 获取远程插件列表地址列表
+    plugin_put_remote_url: 设置远程插件列表地址（单条，兼容）
+    plugin_put_remote_urls: 设置远程插件列表地址列表
+    plugin_get_remote: 获取远程插件列表
+    plugin_install: 安装插件
+    plugin_uninstall: 卸载插件
+    plugin_update_status: 更新插件状态
+    plugin_download: 下载插件
+    # 系统监控
+    monitor_server: server 监控
+    monitor_redis: redis 监控
+    # 卡片
+    card_get_list: 获取卡片列表
+    bento_layout_save: 保存 Bento 布局
+    bento_layout_get: 获取 Bento 布局
+    bento_layout_delete: 删除 Bento 布局
+    bento_layout_list: 列出已保存的布局
+    apprise_notify_channels_list: 列出 Apprise 通知通道
+    apprise_notify_channel_get: 获取 Apprise 通知通道详情
+    apprise_notify_channel_create: 创建 Apprise 通知通道
+    apprise_notify_channel_update: 更新 Apprise 通知通道
+    apprise_notify_channel_delete: 删除 Apprise 通知通道
+    apprise_notify_channel_test: 测试 Apprise 通知通道
+    apprise_notify_send: 向指定通道发送通知
+    apprise_notify_logs_list: 分页获取通知发送历史
+    # OAuth2
+    oauth2_get_bindings: 获取用户已绑定的社交账号
+    oauth2_get_binding_url: 获取绑定授权链接
+    oauth2_unbinding: 解绑用户社交账号
+    oauth2_google_url: 获取 google 授权链接
+    oauth2_google_redirect: google 授权自动重定向
+    oauth2_github_url: 获取 Github 授权链接
+    oauth2_github_redirect: Github 授权自动重定向
+    # 邮件
+    email_send_captcha: 发送电子邮件验证码
+    # 任务
+    task_result_detail: 获取任务结果详情
+    task_result_get_paginated: 分页获取所有任务结果
+    task_result_delete_batch: 批量删除任务结果
+    task_scheduler_get_all: 获取所有任务调度
+    task_scheduler_detail: 获取任务调度详情
+    task_scheduler_get_paginated: 分页获取所有任务调度
+    task_scheduler_create: 创建任务调度
+    task_scheduler_update: 更新任务调度
+    task_scheduler_update_status: 更新任务调度状态
+    task_scheduler_delete: 删除任务调度
+    task_scheduler_run: 执行任务
+    task_get_registered: 获取已注册的任务
+    task_revoke: 撤销任务
+    # 文件
+    file_upload: 本地文件上传
+    # 在线用户
+    online_get: 获取在线用户
+    online_force_logout: 强制下线
+    # 认证
+    auth_login: 用户登录
+    auth_logout: 用户登出
+    auth_refresh_token: 刷新 token
+    auth_get_codes: 获取所有授权码
+    auth_captcha: 获取登录验证码
+    auth_swagger_login: swagger 调试专用
+    oauth2_login: OAuth2 用户登录
+    oauth2_login_or_bind: OAuth2 登录或绑定
 success:
   login:
     oauth2_success: 登录成功（OAuth2）
     success: 登录成功
+  plugin:
+    install_success: '插件 {plugin_name} 安装成功，请根据插件说明（README.md）进行相关配置并重启服务'
+    uninstall_success: '插件 {plugin_name} 卸载成功，请根据插件说明（README.md）移除相关配置并重启服务'

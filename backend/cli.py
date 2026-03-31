@@ -159,7 +159,7 @@ async def auto_init() -> None:
     panel_content.append('\n  • Redis 连接信息')
     panel_content.append('\n  • Token 密钥（自动生成）')
 
-    console.print(Panel(panel_content, title=f'fba (v{__version__}) - 环境变量', border_style='cyan', padding=(1, 2)))
+    console.print(Panel(panel_content, title=f'mc (v{__version__}) - 环境变量', border_style='cyan', padding=(1, 2)))
     if not setup_env_file():
         raise cappa.Exit('.env 文件配置失败', code=1)
 
@@ -175,7 +175,7 @@ async def auto_init() -> None:
     panel_content.append('\n  • 主键模式：')
     panel_content.append(f'{settings.DATABASE_PK_MODE}', style='yellow')
 
-    console.print(Panel(panel_content, title=f'fba (v{__version__}) - 数据库', border_style='cyan', padding=(1, 2)))
+    console.print(Panel(panel_content, title=f'mc (v{__version__}) - 数据库', border_style='cyan', padding=(1, 2)))
     ok = Prompt.ask('即将[red]新建/重建数据库[/red]，确认继续吗？', choices=['y', 'n'], default='n')
 
     if ok.lower() == 'y':
@@ -213,7 +213,7 @@ async def init(db: AsyncSession, redis: RedisCli) -> None:
     panel_content.append('\n  • 主键模式：')
     panel_content.append(f'{settings.DATABASE_PK_MODE}', style='yellow')
     pk_details = panel_content.from_markup(
-        '[link=https://fastapi-practices.github.io/fastapi_best_architecture_docs/backend/reference/pk.html]（了解详情）[/]'
+        '[link=https://xxx.com]（了解详情）[/]'
     )
     panel_content.append(pk_details)
     panel_content.append('\n\n【Redis 配置】', style='bold green')
@@ -229,7 +229,7 @@ async def init(db: AsyncSession, redis: RedisCli) -> None:
     else:
         panel_content.append('无', style='dim')
 
-    console.print(Panel(panel_content, title=f'fba (v{__version__}) - 初始化', border_style='cyan', padding=(1, 2)))
+    console.print(Panel(panel_content, title=f'mc (v{__version__}) - 初始化', border_style='cyan', padding=(1, 2)))
     ok = Prompt.ask(
         '即将[red]新建/重建数据库表[/red]并[red]执行所有数据库脚本[/red]，确认继续吗？', choices=['y', 'n'], default='n'
     )
@@ -258,7 +258,7 @@ async def init(db: AsyncSession, redis: RedisCli) -> None:
                 await execute_sql_scripts(db, sql_script, is_init=True)
 
             console.print('初始化成功', style='green')
-            console.print('\n快试试 [bold cyan]fba run[/bold cyan] 启动服务吧~')
+            console.print('\n快试试 [bold cyan]mc run[/bold cyan] 启动服务吧~')
         except Exception as e:
             raise cappa.Exit(f'初始化失败：{e}', code=1)
     else:
@@ -266,6 +266,16 @@ async def init(db: AsyncSession, redis: RedisCli) -> None:
 
 
 def run(host: str, port: int, reload: bool, workers: int) -> None:  # noqa: FBT001
+    # 终端 ASCII 艺术：MUTHUR Command
+    ascii_banner = r"""
+  __  __       _   _   _   _   ____      ____                      _           _
+ |  \/  |_   _| | | | | | | | |__ /     / ___|___  _ __   ___  ___| | __ _  __| | ___ _ __
+ | |\/| | | | | | | | |_| |  |_ \     | |   / _ \| '_ \ / _ \/ __| |/ _` |/ _` |/ _ \ '__|
+ |  |  | |_| | |_| |___  ___| |_) |    | |__| (_) | | | |  __/ (__| | (_| | (_| |  __/ |
+ |_|  |_|\__,_|\___/   |_|   |____/     \____\___/|_| |_|\___|\___|_|\__,_|\__,_|\___|_|
+"""
+    console.print(ascii_banner, style='bold cyan')
+
     url = f'http://{host}:{port}'
     docs_url = url + settings.FASTAPI_DOCS_URL
     redoc_url = url + settings.FASTAPI_REDOC_URL
@@ -291,13 +301,13 @@ def run(host: str, port: int, reload: bool, workers: int) -> None:  # noqa: FBT0
 
     if settings.ENVIRONMENT == 'dev':
         panel_content.append(f'\n\n📖 Swagger 文档: {docs_url}', style='bold magenta')
-        panel_content.append(f'\n📚 Redoc   文档: {redoc_url}', style='bold magenta')
+        panel_content.append(f'\n📚 Redoc 文档: {redoc_url}', style='bold magenta')
         panel_content.append(f'\n📡 OpenAPI JSON: {openapi_url}', style='bold magenta')
 
     panel_content.append('\n🌐 架构官方文档: ', style='bold magenta')
-    panel_content.append('https://fastapi-practices.github.io/fastapi_best_architecture_docs/')
+    panel_content.append('https://xxx.com')
 
-    console.print(Panel(panel_content, title=f'fba (v{__version__})', border_style='purple', padding=(1, 2)))
+    console.print(Panel(panel_content, title=f'mc (v{__version__})', border_style='purple', padding=(1, 2)))
     granian.Granian(
         target='backend.main:app',
         interface='asgi',
@@ -401,7 +411,8 @@ async def execute_sql_scripts(db: AsyncSession, sql_scripts: str, *, is_init: bo
         for stmt in stmts:
             await db.execute(text(stmt))
     except Exception as e:
-        raise cappa.Exit(f'SQL 脚本执行失败：{e}', code=1)
+        msg = getattr(e, 'msg', None) or str(e)
+        raise cappa.Exit(f'SQL 脚本执行失败：{msg}', code=1)
 
     if not is_init:
         console.print('SQL 脚本已执行完成', style='bold green')
@@ -423,7 +434,7 @@ async def import_table(
         async with async_db_session.begin() as db:
             await gen_service.import_business_and_model(db=db, obj=obj)
         console.log('代码生成业务和模型列导入成功', style='bold green')
-        console.log('\n快试试 [bold cyan]fba codegen[/bold cyan] 生成代码吧~')
+        console.log('\n快试试 [bold cyan]mc codegen[/bold cyan] 生成代码吧~')
     except Exception as e:
         raise cappa.Exit(e.msg if isinstance(e, BaseExceptionError) else str(e), code=1)
 
@@ -496,7 +507,7 @@ async def generate(*, preview: bool = False) -> None:
         raise cappa.Exit(e.msg if isinstance(e, BaseExceptionError) else str(e), code=1)
 
 
-@cappa.command(help='初始化 fba 项目', default_long=True)
+@cappa.command(help='初始化 mc 项目', default_long=True)
 @dataclass
 class Init:
     auto: Annotated[
@@ -623,7 +634,7 @@ class Import:
     ]
     table_schema: Annotated[
         str,
-        cappa.Arg(short='tc', default='fba', help='数据库名'),
+        cappa.Arg(short='tc', default='mc', help='数据库名'),
     ]
     table_name: Annotated[
         str,
@@ -640,7 +651,7 @@ class Import:
         await import_table(self.app, self.table_schema, self.table_name)
 
 
-@cappa.command(name='codegen', help='代码生成（体验完整功能，请自行部署 fba vben 前端工程）', default_long=True)
+@cappa.command(name='codegen', help='代码生成（体验完整功能，请自行部署 mc vben 前端工程）', default_long=True)
 @dataclass
 class CodeGenerator:
     preview: Annotated[
@@ -659,9 +670,9 @@ class CodeGenerator:
         await generate(preview=self.preview)
 
 
-@cappa.command(help='一个高效的 fba 命令行界面', default_long=True)
+@cappa.command(help='一个高效的 mc 命令行界面', default_long=True)
 @dataclass
-class FbaCli:
+class McCli:
     sql: Annotated[
         str,
         cappa.Arg(value_name='PATH', default='', show_default=False, help='在事务中执行 SQL 脚本'),
@@ -676,4 +687,4 @@ class FbaCli:
 
 def main() -> None:
     output = cappa.Output(error_format=f'{error_format}\n{output_help}')
-    asyncio.run(cappa.invoke_async(FbaCli, version=__version__, output=output))
+    asyncio.run(cappa.invoke_async(McCli, version=__version__, output=output))

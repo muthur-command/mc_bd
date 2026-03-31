@@ -1,14 +1,16 @@
 [project]
-name = "fastapi_best_architecture"
-description = "FastAPI 企业级后端架构解决方案"
+name = "muthur-command_backend"
+description = "MUTHUR Command platform backend"
 authors = [
-    { name = "Wu Clan", email = "jianhengwu0407@gmail.com" },
+    { name = "morty.zhao", email = "morty.zhaoyu@gmail.com" },
 ]
 readme = "README.md"
-license = { text = "MIT" }
+license = { text = "GPL-3.0-or-later" }
 requires-python = ">=3.10"
 dynamic = ['version']
 dependencies = [
+    "aiosmtplib>=3.0.0",
+    "apprise>=1.8.0",
     "alembic>=1.18.1",
     "asgiref>=3.11.0",
     "asyncmy>=0.2.11",
@@ -22,6 +24,7 @@ dependencies = [
     "cryptography>=46.0.3",
     "dulwich>=1.0.0",
     "fast-captcha>=0.3.2",
+    "fastapi-oauth20>=0.0.2",
     "fastapi-limiter>=0.1.6",
     "fastapi-pagination>=0.15.6",
     "fastapi[standard-no-fastapi-cloud-cli]>=0.128.0",
@@ -33,14 +36,6 @@ dependencies = [
     "jinja2>=3.1.6",
     "loguru>=0.7.3",
     "msgspec>=0.20.0",
-    "opentelemetry-exporter-otlp-proto-grpc>=1.39.1",
-    "opentelemetry-instrumentation-fastapi>=0.60b1",
-    "opentelemetry-instrumentation-httpx>=0.60b1",
-    "opentelemetry-instrumentation-logging>=0.60b1",
-    "opentelemetry-instrumentation-redis>=0.60b1",
-    "opentelemetry-instrumentation-sqlalchemy>=0.60b1",
-    "opentelemetry-sdk>=1.39.1",
-    "prometheus-client>=0.24.1",
     "psutil>=7.2.1",
     # https://github.com/fastapi-practices/fastapi_best_architecture/issues/887
     "psycopg[binary]==3.2.10",
@@ -87,7 +82,7 @@ packages = ["backend"]
 path = "backend/__init__.py"
 
 [project.scripts]
-fba = "backend.cli:main"
+mc = "backend.cli:main"
 
 [build-system]
 requires = ["hatchling"]

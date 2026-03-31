@@ -5,9 +5,18 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.core.conf import settings
 from backend.database.db import async_engine
-from backend.plugin.config.crud.crud_config import config_dao
-from backend.plugin.config.enums import ConfigType
 from backend.utils.serializers import select_list_serialize
+
+try:
+    from backend.plugin.config.crud.crud_config import config_dao
+    from backend.plugin.config.enums import ConfigType
+except ModuleNotFoundError:
+    config_dao = None
+    # 无 config 插件时的占位，仅用于类型/调用兼容
+    class ConfigType:
+        user_security = 0
+        login = 1
+        email = 2
 
 _sys_config_table_exists: bool | None = None
 
@@ -28,12 +37,12 @@ def _to_bool(value: str) -> bool:
 
 async def _load_config(
     db: AsyncSession,
-    config_type: ConfigType,
+    config_type: type,
     mapping: dict[str, Callable],
     status_key: str,
 ) -> None:
     """
-    根据配置类型加载配置
+    根据配置类型加载配置（依赖 config 插件，未安装时直接返回）
 
     :param db: 数据库会话
     :param config_type: 配置类型枚举
@@ -41,6 +50,8 @@ async def _load_config(
     :param status_key: 状态键
     :return:
     """
+    if config_dao is None:
+        return
     if not await check_sys_config_table_exists():
         return
 

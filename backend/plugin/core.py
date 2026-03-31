@@ -8,7 +8,7 @@ from typing import Any
 import anyio
 import rtoml
 
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends
 
 from backend.common.enums import DataBaseType, PluginLevelType, PrimaryKeyType, StatusType
 from backend.common.exception import errors
@@ -30,11 +30,13 @@ def get_plugins() -> list[str]:
     # 遍历插件目录
     for item in os.listdir(PLUGIN_DIR):
         item_path = PLUGIN_DIR / item
-        if not os.path.isdir(item_path) and item == '__pycache__':
+        if not os.path.isdir(item_path) or item == '__pycache__':
             continue
-
+        # 排除备份目录（如 dict.20260207115050.backup），避免当作插件加载
+        if '.backup' in item:
+            continue
         # 检查是否为目录且包含 __init__.py 文件
-        if os.path.isdir(item_path) and '__init__.py' in os.listdir(item_path):
+        if '__init__.py' in os.listdir(item_path):
             plugin_packages.append(item)
 
     return plugin_packages
@@ -200,7 +202,7 @@ def inject_extend_router(plugin: dict[str, Any]) -> None:
                     router=plugin_router,
                     prefix=prefix,
                     tags=[tags] if tags else [],
-                    dependencies=[Depends(PluginStatusChecker(plugin_name))],
+                    dependencies=[Depends(get_plugin_status_checker(plugin_name))],
                 )
             except Exception as e:
                 raise PluginInjectError(f'扩展级插件 {plugin_name} 路由注入失败：{e!s}') from e
@@ -230,7 +232,7 @@ def inject_app_router(plugin: dict[str, Any], target_router: APIRouter) -> None:
                 )
 
             # 将插件路由注入到目标路由中
-            target_router.include_router(plugin_router, dependencies=[Depends(PluginStatusChecker(plugin_name))])
+            target_router.include_router(plugin_router, dependencies=[Depends(get_plugin_status_checker(plugin_name))])
     except Exception as e:
         raise PluginInjectError(f'应用级插件 {plugin_name} 路由注入失败：{e!s}') from e
 
@@ -251,29 +253,31 @@ def build_final_router() -> APIRouter:
     return main_router
 
 
+async def _plugin_status_checker_impl(plugin_name: str) -> None:
+    """校验插件是否启用（仅读 Redis，不依赖 Request/WebSocket）。"""
+    plugin_info = await redis_client.get(f'{settings.PLUGIN_REDIS_PREFIX}:{plugin_name}')
+    if not plugin_info:
+        log.error('插件状态未初始化或丢失，需重启服务自动修复')
+        raise PluginInjectError('插件状态未初始化或丢失，请联系系统管理员')
+    if not int(json.loads(plugin_info)['plugin']['enable']):
+        raise errors.ServerError(msg=f'插件 {plugin_name} 未启用，请联系系统管理员')
+
+
+def get_plugin_status_checker(plugin_name: str):
+    """
+    返回用于 Depends 的插件状态校验依赖（无参，兼容 HTTP 与 WebSocket 路由）。
+    使用方式：dependencies=[Depends(get_plugin_status_checker(plugin_name))]。
+    """
+    async def _check() -> None:
+        await _plugin_status_checker_impl(plugin_name)
+    return _check
+
+
 class PluginStatusChecker:
-    """插件状态检查器"""
+    """插件状态检查器（同时支持 HTTP 与 WebSocket 路由）。保留以兼容旧引用。"""
 
     def __init__(self, plugin: str) -> None:
-        """
-        初始化插件状态检查器
-
-        :param plugin: 插件名称
-        :return:
-        """
         self.plugin = plugin
 
-    async def __call__(self, request: Request) -> None:
-        """
-        验证插件状态
-
-        :param request: FastAPI 请求对象
-        :return:
-        """
-        plugin_info = await redis_client.get(f'{settings.PLUGIN_REDIS_PREFIX}:{self.plugin}')
-        if not plugin_info:
-            log.error('插件状态未初始化或丢失，需重启服务自动修复')
-            raise PluginInjectError('插件状态未初始化或丢失，请联系系统管理员')
-
-        if not int(json.loads(plugin_info)['plugin']['enable']):
-            raise errors.ServerError(msg=f'插件 {self.plugin} 未启用，请联系系统管理员')
+    async def __call__(self) -> None:
+        await _plugin_status_checker_impl(self.plugin)

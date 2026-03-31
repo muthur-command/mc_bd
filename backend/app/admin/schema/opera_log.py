@@ -51,4 +51,5 @@ class GetOperaLogDetail(OperaLogSchemaBase):
     model_config = ConfigDict(from_attributes=True)
 
     id: int = Field(description='日志 ID')
+    title_display: str | None = Field(None, description='操作标题（当前语言，供前端 i18n 展示）')
     created_time: datetime = Field(description='创建时间')

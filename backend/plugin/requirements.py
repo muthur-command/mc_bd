@@ -1,6 +1,9 @@
+import importlib.util
 import os
+import shutil
 import subprocess
 import sys
+from pathlib import Path
 
 from importlib.metadata import PackageNotFoundError, distribution
 
@@ -26,6 +29,73 @@ def get_plugins() -> list[str]:
 def _is_in_virtualenv() -> bool:
     """检测当前是否在虚拟环境中运行"""
     return hasattr(sys, 'real_prefix') or (hasattr(sys, 'base_prefix') and sys.base_prefix != sys.prefix)
+
+
+def _resolve_uv_executable() -> str | None:
+    """
+    解析 uv 可执行文件路径。
+
+    uv 管理的 .venv 里往往没有 pip，`python -m pip` 会失败；应优先调用 uv。
+    PATH 中可能没有 uv（如 sudo root），再尝试常见安装位置。
+    """
+    found = shutil.which('uv')
+    if found:
+        return found
+    home = Path.home()
+    for candidate in (
+        home / '.local' / 'bin' / 'uv',
+        home / '.cargo' / 'bin' / 'uv',
+    ):
+        try:
+            if candidate.is_file() and os.access(candidate, os.X_OK):
+                return str(candidate)
+        except OSError:
+            continue
+    return None
+
+
+def _has_pip_module() -> bool:
+    return importlib.util.find_spec('pip') is not None
+
+
+def _plugin_pip_install_cmd(requirements_file: str) -> list[str]:
+    """
+    构造安装插件依赖的命令。
+
+    优先 uv；否则使用当前解释器的 pip（仅当 venv 内已安装 pip 模块）。
+    """
+    req = str(requirements_file)
+    uv_bin = _resolve_uv_executable()
+    if uv_bin:
+        cmd = [uv_bin, 'pip', 'install', '-r', req]
+        if not _is_in_virtualenv():
+            cmd.append('--system')
+    elif _has_pip_module():
+        cmd = [sys.executable, '-m', 'pip', 'install', '-r', req]
+    else:
+        raise PluginInstallError(
+            '无法安装插件依赖：当前环境无 uv，且未安装 pip 模块。'
+            '请在本项目目录执行 `uv sync`，或将插件依赖写入 pyproject.toml 后重新同步。',
+        )
+    if settings.PLUGIN_PIP_CHINA:
+        cmd.extend(['-i', settings.PLUGIN_PIP_INDEX_URL])
+    return cmd
+
+
+def _plugin_pip_uninstall_cmd(requirements_file: str) -> list[str]:
+    req = str(requirements_file)
+    uv_bin = _resolve_uv_executable()
+    if uv_bin:
+        cmd = [uv_bin, 'pip', 'uninstall', '-r', req, '-y']
+        if not _is_in_virtualenv():
+            cmd.append('--system')
+    elif _has_pip_module():
+        cmd = [sys.executable, '-m', 'pip', 'uninstall', '-r', req, '-y']
+    else:
+        raise PluginInstallError(
+            '无法卸载插件依赖：当前环境无 uv 且无 pip。请使用 `uv pip uninstall -r ...` 手动处理。',
+        )
+    return cmd
 
 
 def install_requirements(plugin: str | None) -> None:  # noqa: C901
@@ -57,32 +127,25 @@ def install_requirements(plugin: str | None) -> None:  # noqa: C901
                         missing_dependencies = True
 
         if missing_dependencies:
-            try:
-                pip_install = ['uv', 'pip', 'install', '-r', requirements_file]
-                if not _is_in_virtualenv():
-                    pip_install.append('--system')
-                if settings.PLUGIN_PIP_CHINA:
-                    pip_install.extend(['-i', settings.PLUGIN_PIP_INDEX_URL])
+            pip_install = _plugin_pip_install_cmd(requirements_file)
 
-                max_retries = settings.PLUGIN_PIP_MAX_RETRY
-                for attempt in range(max_retries):
-                    try:
-                        subprocess.check_call(
-                            pip_install,
-                            stdout=subprocess.DEVNULL,
-                            stderr=subprocess.DEVNULL,
-                        )
-                        break
-                    except subprocess.TimeoutExpired:
-                        if attempt == max_retries - 1:
-                            raise PluginInstallError(f'插件 {plugin} 依赖安装超时')
-                        continue
-                    except subprocess.CalledProcessError as e:
-                        if attempt == max_retries - 1:
-                            raise PluginInstallError(f'插件 {plugin} 依赖安装失败：{e}') from e
-                        continue
-            except subprocess.CalledProcessError as e:
-                raise PluginInstallError(f'插件 {plugin} 依赖安装失败：{e}') from e
+            max_retries = settings.PLUGIN_PIP_MAX_RETRY
+            for attempt in range(max_retries):
+                try:
+                    subprocess.check_call(
+                        pip_install,
+                        stdout=subprocess.DEVNULL,
+                        stderr=subprocess.DEVNULL,
+                    )
+                    break
+                except subprocess.TimeoutExpired:
+                    if attempt == max_retries - 1:
+                        raise PluginInstallError(f'插件 {plugin} 依赖安装超时')
+                    continue
+                except subprocess.CalledProcessError as e:
+                    if attempt == max_retries - 1:
+                        raise PluginInstallError(f'插件 {plugin} 依赖安装失败：{e}') from e
+                    continue
 
 
 def uninstall_requirements(plugin: str) -> None:
@@ -95,9 +158,7 @@ def uninstall_requirements(plugin: str) -> None:
     requirements_file = PLUGIN_DIR / plugin / 'requirements.txt'
     if os.path.exists(requirements_file):
         try:
-            pip_uninstall = ['uv', 'pip', 'uninstall', '-r', str(requirements_file), '-y']
-            if not _is_in_virtualenv():
-                pip_uninstall.append('--system')
+            pip_uninstall = _plugin_pip_uninstall_cmd(requirements_file)
             subprocess.check_call(pip_uninstall, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         except subprocess.CalledProcessError as e:
             raise PluginInstallError(f'插件 {plugin} 依赖卸载失败：{e}') from e

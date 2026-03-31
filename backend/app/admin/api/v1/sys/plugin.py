@@ -2,10 +2,13 @@ from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, File, Path, UploadFile
 from fastapi.params import Query
+from pydantic import BaseModel
 from starlette.responses import StreamingResponse
 
 from backend.app.admin.service.plugin_service import plugin_service
 from backend.common.enums import PluginType
+from backend.common.exception import errors
+from backend.common.i18n import t
 from backend.common.response.response_code import CustomResponse
 from backend.common.response.response_schema import ResponseModel, ResponseSchemaModel, response_base
 from backend.common.security.jwt import DependsJwtAuth
@@ -13,6 +16,14 @@ from backend.common.security.permission import RequestPermission
 from backend.common.security.rbac import DependsRBAC
 
 router = APIRouter()
+
+
+class RemoteListUrlBody(BaseModel):
+    url: str
+
+
+class RemoteListUrlsBody(BaseModel):
+    urls: list[str]
 
 
 @router.get('', summary='获取所有插件', dependencies=[DependsJwtAuth])
@@ -25,6 +36,53 @@ async def get_all_plugins() -> ResponseSchemaModel[list[dict[str, Any]]]:
 async def plugin_changed() -> ResponseSchemaModel[bool]:
     plugins = await plugin_service.changed()
     return response_base.success(data=bool(plugins))
+
+
+@router.get('/remote/url', summary='获取远程插件列表地址（单条，兼容）', dependencies=[DependsJwtAuth])
+async def get_remote_list_url() -> ResponseSchemaModel[str | None]:
+    url = await plugin_service.get_remote_list_url()
+    return response_base.success(data=url)
+
+
+@router.get('/remote/urls', summary='获取远程插件列表地址列表', dependencies=[DependsJwtAuth])
+async def get_remote_list_urls() -> ResponseSchemaModel[list[str]]:
+    urls = await plugin_service.get_remote_list_urls()
+    return response_base.success(data=urls)
+
+
+@router.put(
+    '/remote/url',
+    summary='设置远程插件列表地址（单条，兼容）',
+    dependencies=[
+        Depends(RequestPermission('sys:plugin:edit')),
+        DependsRBAC,
+    ],
+)
+async def set_remote_list_url(body: RemoteListUrlBody) -> ResponseModel:
+    await plugin_service.set_remote_list_url(body.url)
+    return response_base.success()
+
+
+@router.put(
+    '/remote/urls',
+    summary='设置远程插件列表地址列表',
+    dependencies=[
+        Depends(RequestPermission('sys:plugin:edit')),
+        DependsRBAC,
+    ],
+)
+async def set_remote_list_urls(body: RemoteListUrlsBody) -> ResponseModel:
+    await plugin_service.set_remote_list_urls(body.urls)
+    return response_base.success()
+
+
+@router.get('/remote', summary='获取远程插件列表', dependencies=[DependsJwtAuth])
+async def get_remote_list() -> ResponseSchemaModel[list[dict[str, Any]]]:
+    try:
+        data = await plugin_service.fetch_remote_list()
+        return response_base.success(data=data)
+    except Exception as e:
+        raise errors.RequestError(msg='error.plugin_remote_fetch_failed', data={'detail': str(e)})
 
 
 @router.post(
@@ -45,7 +103,7 @@ async def install_plugin(
     return response_base.success(
         res=CustomResponse(
             code=200,
-            msg=f'插件 {plugin_name} 安装成功，请根据插件说明（README.md）进行相关配置并重启服务',
+            msg=t('success.plugin.install_success', plugin_name=plugin_name),
         ),
     )
 
@@ -62,7 +120,7 @@ async def install_plugin(
 async def uninstall_plugin(plugin: Annotated[str, Path(description='插件名称')]) -> ResponseModel:
     await plugin_service.uninstall(plugin=plugin)
     return response_base.success(
-        res=CustomResponse(code=200, msg=f'插件 {plugin} 卸载成功，请根据插件说明（README.md）移除相关配置并重启服务'),
+        res=CustomResponse(code=200, msg=t('success.plugin.uninstall_success', plugin_name=plugin)),
     )
 
 
