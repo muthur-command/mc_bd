@@ -1660,6 +1660,7 @@ wheels = [
 
 [[package]]
 name = "muthur-command-backend"
+version = "2026.5.0.dev0"
 source = { editable = "." }
 dependencies = [
     { name = "aiosmtplib" },
@@ -1706,6 +1707,7 @@ dependencies = [
 
 [package.dev-dependencies]
 dev = [
+    { name = "packaging" },
     { name = "pytest" },
     { name = "pytest-sugar" },
 ]
@@ -1763,6 +1765,7 @@ requires-dist = [
 
 [package.metadata.requires-dev]
 dev = [
+    { name = "packaging", specifier = ">=24.0" },
     { name = "pytest", specifier = ">=9.0.2" },
     { name = "pytest-sugar", specifier = ">=1.1.1" },
 ]
