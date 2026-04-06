@@ -56,9 +56,13 @@ dependencies = [
 
 [dependency-groups]
 dev = [
+    "httpx>=0.28.0",
     "packaging>=24.0",
     "pytest>=9.0.2",
+    "pytest-asyncio>=1.3.0",
+    "pytest-cov>=6.0.0",
     "pytest-sugar>=1.1.1",
+    "syrupy>=5.1.0",
 ]
 lint = [
     "prek>=0.3.0",
@@ -81,6 +85,36 @@ packages = ["backend"]
 
 [project.scripts]
 mc = "backend.cli:main"
+
+[tool.pytest.ini_options]
+minversion = "8.0"
+testpaths = ["tests", "backend/plugin"]
+pythonpath = ["."]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+norecursedirs = [
+    ".git",
+    ".venv",
+    "__pycache__",
+    "*.egg-info",
+    "node_modules",
+    "sql",
+    "static",
+    "alembic",
+]
+filterwarnings = [
+    "ignore::DeprecationWarning:packaging\\.version",
+]
+markers = [
+    "integration: 需要真实数据库 / Redis 等外部服务",
+    "slow: 耗时用例",
+]
+addopts = [
+    "-ra",
+    "--strict-markers",
+    "--import-mode=importlib",
+    "--snapshot-default-extension=tests.helpers.syrupy_ext.McBdSnapshotExtension",
+]
 
 [build-system]
 requires = ["hatchling"]

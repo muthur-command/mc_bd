@@ -1,0 +1,23 @@
+# CI 中 full 套件上传使用 flag `full-suite`（见 .github/workflows/ci.yaml）。
+codecov:
+  branch: mc_bd
+coverage:
+  status:
+    project:
+      default:
+        target: auto
+        threshold: 0.09
+    patch:
+      default:
+        target: auto
+comment: false
+
+# 与分片/矩阵 pytest 一致：仅 full-suite 报告参与 carryforward。
+flag_management:
+  default_rules:
+    carryforward: false
+  individual_flags:
+    - name: full-suite
+      paths:
+        - ".*"
+      carryforward: true

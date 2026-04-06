@@ -1,0 +1,12 @@
+core:
+  - "backend/**"
+  - "pyproject.toml"
+  - "uv.lock"
+  - "script/**"
+  - "tests/conftest.py"
+  - "tests/**/conftest.py"
+  - ".github/**"
+
+requirements:
+  - "pyproject.toml"
+  - "uv.lock"

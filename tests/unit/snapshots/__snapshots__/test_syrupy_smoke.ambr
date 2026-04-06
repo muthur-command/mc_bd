@@ -1,0 +1,16 @@
+# serializer version: mc_bd-1
+# name: test_snapshot_dict
+  dict({
+    'k': 'v',
+    'n': 1,
+  })
+# ---
+# name: test_snapshot_enum
+  1
+# ---
+# name: test_snapshot_pydantic_model
+  dict({
+    'count': 2,
+    'name': 'x',
+  })
+# ---

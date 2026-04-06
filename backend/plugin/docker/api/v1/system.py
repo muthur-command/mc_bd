@@ -1,7 +1,7 @@
 """系统信息API"""
 from fastapi import APIRouter
 
-from backend.common.response.response_schema import ResponseSchemaModel, response_base
+from backend.common.response.response_schema import ResponseModel, ResponseSchemaModel, response_base
 from backend.common.security.jwt import DependsJwtAuth
 from backend.database.db import CurrentSession
 from backend.plugin.docker.schema.docker import (
@@ -40,7 +40,7 @@ async def get_connected_status(db: CurrentSession) -> ResponseSchemaModel[Connec
 async def set_connected_status(
     param: SetConnectedStatusParam,
     db: CurrentSession,
-) -> ResponseSchemaModel[dict]:
+) -> ResponseModel:
     """设置连接状态"""
     success = await docker_service.set_connected_status(db, param.connected)
     if success:
