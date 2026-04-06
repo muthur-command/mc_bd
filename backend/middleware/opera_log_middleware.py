@@ -123,7 +123,7 @@ class OperaLogMiddleware(BaseHTTPMiddleware):
 
         return response
 
-    async def get_request_args(self, request: Request) -> dict[str, Any] | None:  # noqa: C901
+    async def get_request_args(self, request: Request) -> dict[str, Any] | None:
         """
         获取请求参数
 

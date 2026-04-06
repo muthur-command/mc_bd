@@ -31,11 +31,7 @@ class PluginService:
     async def get_all() -> list[dict[str, Any]]:
         """获取所有插件"""
         changed_key = f'{settings.PLUGIN_REDIS_PREFIX}:changed'
-        keys = [
-            key
-            async for key in redis_client.scan_iter(f'{settings.PLUGIN_REDIS_PREFIX}:*')
-            if key != changed_key
-        ]
+        keys = [key async for key in redis_client.scan_iter(f'{settings.PLUGIN_REDIS_PREFIX}:*') if key != changed_key]
         if not keys:
             return []
         values = await redis_client.mget(*keys)

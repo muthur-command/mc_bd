@@ -21,5 +21,5 @@ def test_run_await_raises_when_wrapped_is_not_async_def() -> None:
     def sync_fn() -> int:
         return 1
 
-    with pytest.raises(TypeError, match="Expected coroutine"):
+    with pytest.raises(TypeError, match='Expected coroutine'):
         sync_fn()

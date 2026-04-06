@@ -17,12 +17,12 @@ class _E(IntEnum):
 
 
 def test_snapshot_dict(snapshot) -> None:
-    assert {"k": "v", "n": 1} == snapshot
+    assert snapshot == {'k': 'v', 'n': 1}
 
 
 def test_snapshot_pydantic_model(snapshot) -> None:
-    assert _Sample(name="x", count=2) == snapshot
+    assert _Sample(name='x', count=2) == snapshot
 
 
 def test_snapshot_enum(snapshot) -> None:
-    assert _E.A == snapshot
+    assert snapshot == _E.A

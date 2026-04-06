@@ -3,14 +3,12 @@
 import base64
 import re
 import uuid
-from pathlib import Path
 
 from backend.common.exception import errors
 from backend.common.log import log
 from backend.core.conf import settings
 from backend.core.path_conf import UPLOAD_DIR
 from backend.utils.timezone import timezone
-
 
 # data URI 格式: data:image/png;base64,iVBORw0KGgo...
 DATA_URI_PATTERN = re.compile(r'^data:image/(\w+);base64,(.+)$')

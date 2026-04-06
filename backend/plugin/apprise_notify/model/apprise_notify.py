@@ -1,6 +1,7 @@
 """Apprise 通道与发送历史表"""
 
 import sqlalchemy as sa
+
 from sqlalchemy.orm import Mapped, mapped_column
 
 from backend.common.model import Base, UniversalText, id_key

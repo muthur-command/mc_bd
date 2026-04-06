@@ -6,8 +6,8 @@ from backend.const import MAJOR_VERSION, MINOR_VERSION, PATCH_VERSION, __short_v
 
 
 def test_version_components_match_full_string() -> None:
-    assert __version__ == f"{__short_version__}.{PATCH_VERSION}"
-    assert __short_version__ == f"{MAJOR_VERSION}.{MINOR_VERSION}"
+    assert __version__ == f'{__short_version__}.{PATCH_VERSION}'
+    assert __short_version__ == f'{MAJOR_VERSION}.{MINOR_VERSION}'
 
 
 def test_version_is_valid_packaging_version() -> None:

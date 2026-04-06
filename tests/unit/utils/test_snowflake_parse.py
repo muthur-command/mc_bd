@@ -25,7 +25,7 @@ def test_snowflake_parse_extracts_components() -> None:
 
 def test_snowflake_generate_after_manual_init() -> None:
     s = Snowflake()
-    s._initialized = True  # noqa: SLF001
+    s._initialized = True
     s.datacenter_id = 1
     s.worker_id = 2
     s.sequence = 0

@@ -142,10 +142,51 @@ ignore = [
     "TRY301"
 ]
 
+[lint.mccabe]
+max-complexity = 12
+
 [lint.per-file-ignores]
 "**/model/*.py" = ["TC003"]
 "backend/common/socketio/server.py" = ["ANN001"]
-"backend/common/exception/exception_handler.py" = ["ANN202","RUF029"]
+"backend/common/exception/exception_handler.py" = ["ANN202", "RUF029"]
+# 与 pytest 惯例一致：测试里不强制 ANN/FBT/时区/异步占位等
+"**/tests/**/*.py" = [
+    "ANN001",
+    "ANN201",
+    "ANN202",
+    "ANN204",
+    "ANN205",
+    "ANN206",
+    "FBT001",
+    "FBT002",
+    "DTZ001",
+    "DTZ005",
+    "RUF029",
+    "PERF203",
+    "RUF043",
+    "N806",
+    "N818",
+    "TRY300",
+    "C901",
+    "SIM102",
+    "SIM108",
+    "B007",
+    "E501",
+]
+# 体量极大的 Docker 封装：TRY300/布尔位参数与 python-on-whales 风格一致；其余为历史复杂度/裸 except 等
+"backend/plugin/docker/service/docker_service.py" = [
+    "TRY300",
+    "FBT001",
+    "FBT002",
+    "C901",
+    "E501",
+    "E722",
+    "B007",
+    "SIM102",
+    "SIM108",
+]
+"backend/plugin/docker/api/v1/containers.py" = ["C901", "E722", "PERF203", "E501"]
+"backend/plugin/docker/api/v1/registries.py" = ["C901"]
 
 [lint.flake8-pytest-style]
 parametrize-names-type = "list"

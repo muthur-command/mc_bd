@@ -4,14 +4,19 @@ from __future__ import annotations
 
 import importlib
 import sys
+
+from typing import TYPE_CHECKING
 from unittest.mock import MagicMock, patch
 
 import pytest
 
+if TYPE_CHECKING:
+    from typing_extensions import Self
+
 
 @pytest.fixture
 def unload_main_module() -> None:
-    sys.modules.pop("backend.main", None)
+    sys.modules.pop('backend.main', None)
     yield
 
 
@@ -19,7 +24,7 @@ class _ProgressStub:
     def __init__(self, *args: object, **kwargs: object) -> None:
         pass
 
-    def __enter__(self) -> _ProgressStub:
+    def __enter__(self) -> Self:
         return self
 
     def __exit__(self, *args: object) -> None:
@@ -38,13 +43,13 @@ class _ProgressStub:
 def test_main_module_exposes_app_after_stripped_import(unload_main_module: None) -> None:
     fake_app = MagicMock()
     with (
-        patch("backend.plugin.core.get_plugins", return_value=[]),
-        patch("backend.plugin.requirements.install_requirements"),
-        patch("backend.core.registrar.register_app", return_value=fake_app),
-        patch("rich.progress.Progress", _ProgressStub),
-        patch("rich.text.Text", side_effect=lambda *a, **k: a[0] if a else ""),
-        patch("backend.utils.console.console.print"),
+        patch('backend.plugin.core.get_plugins', return_value=[]),
+        patch('backend.plugin.requirements.install_requirements'),
+        patch('backend.core.registrar.register_app', return_value=fake_app),
+        patch('rich.progress.Progress', _ProgressStub),
+        patch('rich.text.Text', side_effect=lambda *a, **k: a[0] if a else ''),
+        patch('backend.utils.console.console.print'),
     ):
-        mod = importlib.import_module("backend.main")
+        mod = importlib.import_module('backend.main')
 
     assert mod.app is fake_app

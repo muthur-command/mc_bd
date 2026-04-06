@@ -8,19 +8,19 @@ from backend.common.schema import CustomEmailStr, ser_string
 
 
 def test_custom_email_empty_returns_none() -> None:
-    assert CustomEmailStr._validate("") is None  # type: ignore[arg-type]
+    assert CustomEmailStr._validate('') is None  # type: ignore[arg-type]
 
 
 def test_custom_email_valid() -> None:
-    v = CustomEmailStr._validate("a@b.co")  # type: ignore[arg-type]
-    assert v == "a@b.co"
+    v = CustomEmailStr._validate('a@b.co')  # type: ignore[arg-type]
+    assert v == 'a@b.co'
 
 
 @pytest.mark.parametrize(
-    ("inp", "expected"),
+    ('inp', 'expected'),
     [
-        ("x", "x"),
-        ("", ""),
+        ('x', 'x'),
+        ('', ''),
         (None, None),
     ],
 )

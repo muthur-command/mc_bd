@@ -14,9 +14,7 @@ class CRUDUserPreference(CRUDPlus[UserPreference]):
         """按用户 ID 获取偏好"""
         return await self.select_model_by_column(db, user_id=user_id)
 
-    async def upsert(
-        self, db: AsyncSession, user_id: int, obj: UpdateUserPreferenceParam
-    ) -> UserPreference:
+    async def upsert(self, db: AsyncSession, user_id: int, obj: UpdateUserPreferenceParam) -> UserPreference:
         """存在则更新，否则插入"""
         row = await self.get_by_user_id(db, user_id)
         data = obj.model_dump(exclude_none=True)

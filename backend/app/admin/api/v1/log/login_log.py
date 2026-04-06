@@ -14,7 +14,8 @@ from backend.database.db import CurrentSession, CurrentSessionTransaction
 
 router = APIRouter()
 
-# 登录日志 msg 可能存的是 i18n key（如 error.xxx）或已翻译文案（如「登录成功」），此处列出「已翻译文案 -> key」便于按当前语言展示
+# 登录日志 msg 可能存 i18n key（如 error.xxx）或已翻译文案（如「登录成功」）。
+# 此处列出「已翻译文案 -> key」，便于按当前语言展示。
 LOGIN_LOG_MSG_TO_I18N_KEY = {
     # 登录成功
     '登录成功': 'success.login.success',
@@ -46,8 +47,6 @@ LOGIN_LOG_MSG_TO_I18N_KEY = {
     'Token 已过期': 'error.token_expired',
     'Token has expired': 'error.token_expired',
     '验证码已失效，请重新获取': 'error.captcha_expired',
-    # 与 error.captcha.expired 英文相同，优先用 captcha.expired
-    'Captcha has expired, please try again': 'error.captcha.expired',
 }
 
 

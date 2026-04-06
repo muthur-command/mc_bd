@@ -19,7 +19,7 @@ def _scalar_result(row: object | None) -> MagicMock:
 @pytest.mark.asyncio
 async def test_get_connected_status_true_when_value_is_true() -> None:
     db = AsyncMock()
-    cfg = DockerConfig(key="connected", value="true")
+    cfg = DockerConfig(key='connected', value='true')
     db.execute = AsyncMock(return_value=_scalar_result(cfg))
     assert await DockerService.get_connected_status(db) is True
     db.execute.assert_awaited_once()
@@ -35,19 +35,19 @@ async def test_get_connected_status_false_when_missing() -> None:
 @pytest.mark.asyncio
 async def test_get_connected_status_false_on_exception() -> None:
     db = AsyncMock()
-    db.execute = AsyncMock(side_effect=RuntimeError("db down"))
+    db.execute = AsyncMock(side_effect=RuntimeError('db down'))
     assert await DockerService.get_connected_status(db) is False
 
 
 @pytest.mark.asyncio
 async def test_set_connected_status_updates_existing() -> None:
     db = MagicMock()
-    cfg = DockerConfig(key="connected", value="false")
+    cfg = DockerConfig(key='connected', value='false')
     db.execute = AsyncMock(return_value=_scalar_result(cfg))
     db.commit = AsyncMock()
     db.refresh = AsyncMock()
     assert await DockerService.set_connected_status(db, True) is True
-    assert cfg.value == "true"
+    assert cfg.value == 'true'
     db.commit.assert_awaited_once()
     db.refresh.assert_awaited_once()
     db.add.assert_not_called()
@@ -64,15 +64,15 @@ async def test_set_connected_status_inserts_when_missing() -> None:
     db.add.assert_called_once()
     added = db.add.call_args[0][0]
     assert isinstance(added, DockerConfig)
-    assert added.key == "connected"
-    assert added.value == "false"
+    assert added.key == 'connected'
+    assert added.value == 'false'
     db.commit.assert_awaited_once()
 
 
 @pytest.mark.asyncio
 async def test_set_connected_status_rollback_on_error() -> None:
     db = AsyncMock()
-    db.execute = AsyncMock(side_effect=RuntimeError("fail"))
+    db.execute = AsyncMock(side_effect=RuntimeError('fail'))
     db.rollback = AsyncMock()
     assert await DockerService.set_connected_status(db, True) is False
     db.rollback.assert_awaited_once()

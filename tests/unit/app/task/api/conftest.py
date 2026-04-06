@@ -2,11 +2,9 @@
 
 from __future__ import annotations
 
-from collections.abc import Generator
+from typing import TYPE_CHECKING
 
 import pytest
-from fastapi import FastAPI
-from starlette.testclient import TestClient
 
 from backend.app.task.api.router import v1 as task_v1
 from tests.helpers.fastapi_testing import (
@@ -14,6 +12,12 @@ from tests.helpers.fastapi_testing import (
     noop_rate_limiter_call,
     starlette_test_client,
 )
+
+if TYPE_CHECKING:
+    from collections.abc import Generator
+
+    from fastapi import FastAPI
+    from starlette.testclient import TestClient
 
 
 def _register_task_v1(app: FastAPI) -> None:

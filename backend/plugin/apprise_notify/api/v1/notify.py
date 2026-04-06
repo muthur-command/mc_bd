@@ -3,15 +3,16 @@
 from __future__ import annotations
 
 import math
-from typing import Any
+
+from typing import TYPE_CHECKING, Annotated, Any
 
 import apprise
+
 from fastapi import APIRouter, Body, Depends, HTTPException, Query
 from pydantic import AliasChoices, BaseModel, ConfigDict, Field
 from sqlalchemy import func, select
-from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.common.response.response_schema import response_base
+from backend.common.response.response_schema import ResponseModel, response_base
 from backend.common.security.jwt import DependsJwtAuth
 from backend.database.db import get_db
 from backend.plugin.apprise_notify.model.apprise_notify import (
@@ -19,6 +20,9 @@ from backend.plugin.apprise_notify.model.apprise_notify import (
     AppriseNotifyLogRecord,
 )
 from backend.plugin.apprise_notify.service.apprise_send import mask_apprise_url, send_apprise
+
+if TYPE_CHECKING:
+    from sqlalchemy.ext.asyncio import AsyncSession
 
 router = APIRouter(dependencies=[DependsJwtAuth])
 
@@ -90,14 +94,14 @@ def _log_row(r: AppriseNotifyLogRecord) -> dict[str, Any]:
 
 
 @router.get('/channels', summary='列出 Apprise 通知通道')
-async def list_channels(db: AsyncSession = Depends(get_db)):
+async def list_channels(db: Annotated[AsyncSession, Depends(get_db)]) -> ResponseModel:
     result = await db.execute(select(AppriseNotifyChannelRecord).order_by(AppriseNotifyChannelRecord.id.desc()))
     rows = result.scalars().all()
     return response_base.success(data=[_channel_row(r, include_secret=False) for r in rows])
 
 
 @router.get('/channels/{pk}', summary='获取 Apprise 通知通道详情')
-async def get_channel(pk: int, db: AsyncSession = Depends(get_db)):
+async def get_channel(pk: int, db: Annotated[AsyncSession, Depends(get_db)]) -> ResponseModel:
     r = await db.get(AppriseNotifyChannelRecord, pk)
     if not r:
         raise HTTPException(status_code=404, detail='error.apprise_notify.channel_not_found')
@@ -105,7 +109,7 @@ async def get_channel(pk: int, db: AsyncSession = Depends(get_db)):
 
 
 @router.post('/channels', summary='创建 Apprise 通知通道')
-async def create_channel(data: ChannelCreate, db: AsyncSession = Depends(get_db)):
+async def create_channel(data: ChannelCreate, db: Annotated[AsyncSession, Depends(get_db)]) -> ResponseModel:
     obj = apprise.Apprise()
     if not obj.add(data.apprise_url):
         raise HTTPException(status_code=400, detail='error.apprise_notify.invalid_url')
@@ -122,7 +126,7 @@ async def create_channel(data: ChannelCreate, db: AsyncSession = Depends(get_db)
 
 
 @router.put('/channels/{pk}', summary='更新 Apprise 通知通道')
-async def update_channel(pk: int, data: ChannelUpdate, db: AsyncSession = Depends(get_db)):
+async def update_channel(pk: int, data: ChannelUpdate, db: Annotated[AsyncSession, Depends(get_db)]) -> ResponseModel:
     row = await db.get(AppriseNotifyChannelRecord, pk)
     if not row:
         raise HTTPException(status_code=404, detail='error.apprise_notify.channel_not_found')
@@ -143,7 +147,7 @@ async def update_channel(pk: int, data: ChannelUpdate, db: AsyncSession = Depend
 
 
 @router.delete('/channels/{pk}', summary='删除 Apprise 通知通道')
-async def delete_channel(pk: int, db: AsyncSession = Depends(get_db)):
+async def delete_channel(pk: int, db: Annotated[AsyncSession, Depends(get_db)]) -> ResponseModel:
     row = await db.get(AppriseNotifyChannelRecord, pk)
     if not row:
         raise HTTPException(status_code=404, detail='error.apprise_notify.channel_not_found')
@@ -179,9 +183,9 @@ async def _append_log(
 @router.post('/channels/{pk}/test', summary='测试 Apprise 通知通道')
 async def test_channel(
     pk: int,
-    data: TestBody = Body(default_factory=TestBody),
-    db: AsyncSession = Depends(get_db),
-):
+    data: Annotated[TestBody, Body(default_factory=TestBody)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> ResponseModel:
     row = await db.get(AppriseNotifyChannelRecord, pk)
     if not row:
         raise HTTPException(status_code=404, detail='error.apprise_notify.channel_not_found')
@@ -206,7 +210,7 @@ async def test_channel(
 
 
 @router.post('/notify', summary='向指定通道发送通知')
-async def notify_channels(data: NotifyBody, db: AsyncSession = Depends(get_db)):
+async def notify_channels(data: NotifyBody, db: Annotated[AsyncSession, Depends(get_db)]) -> ResponseModel:
     if not data.channel_ids:
         raise HTTPException(status_code=400, detail='error.apprise_notify.no_channels')
 
@@ -258,18 +262,15 @@ async def notify_channels(data: NotifyBody, db: AsyncSession = Depends(get_db)):
 
 @router.get('/logs', summary='分页获取通知发送历史')
 async def list_logs(
-    db: AsyncSession = Depends(get_db),
-    page: int = Query(1, ge=1),
-    size: int = Query(20, ge=1, le=200),
-):
+    db: Annotated[AsyncSession, Depends(get_db)],
+    page: Annotated[int, Query(ge=1)] = 1,
+    size: Annotated[int, Query(ge=1, le=200)] = 20,
+) -> ResponseModel:
     count_stmt = select(func.count()).select_from(AppriseNotifyLogRecord)
     total = (await db.execute(count_stmt)).scalar_one()
 
     stmt = (
-        select(AppriseNotifyLogRecord)
-        .order_by(AppriseNotifyLogRecord.id.desc())
-        .offset((page - 1) * size)
-        .limit(size)
+        select(AppriseNotifyLogRecord).order_by(AppriseNotifyLogRecord.id.desc()).offset((page - 1) * size).limit(size)
     )
     result = await db.execute(stmt)
     rows = result.scalars().all()

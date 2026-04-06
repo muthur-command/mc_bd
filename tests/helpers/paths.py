@@ -12,4 +12,4 @@ def tests_dir() -> Path:
 
 def backend_dotenv_path() -> Path:
     """`backend/.env`，用于收集阶段提示等。"""
-    return tests_dir().parent / "backend" / ".env"
+    return tests_dir().parent / 'backend' / '.env'

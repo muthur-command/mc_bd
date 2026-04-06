@@ -215,4 +215,3 @@ def register_socket_app(app: FastAPI) -> None:
         socketio_path='/ws/socket.io',
     )
     app.mount('/ws', socket_app)
-

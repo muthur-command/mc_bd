@@ -2,15 +2,19 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable
-from contextlib import AbstractContextManager
+from typing import TYPE_CHECKING
 
-from fastapi import FastAPI
-from starlette.testclient import TestClient
 from starlette_context.middleware import ContextMiddleware
 from starlette_context.plugins import RequestIdPlugin
 
 from backend.middleware.access_middleware import AccessMiddleware
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
+    from contextlib import AbstractContextManager
+
+    from fastapi import FastAPI
+    from starlette.testclient import TestClient
 
 
 def test_access_middleware_with_context_stack(
@@ -24,11 +28,11 @@ def test_access_middleware_with_context_stack(
         plugins=[RequestIdPlugin(validate=False)],
     )
 
-    @app.get("/ping")
+    @app.get('/ping')
     async def _ping() -> dict:
-        return {"pong": True}
+        return {'pong': True}
 
     with starlette_client_context(app) as client:
-        r = client.get("/ping")
+        r = client.get('/ping')
     assert r.status_code == 200
-    assert r.json() == {"pong": True}
+    assert r.json() == {'pong': True}

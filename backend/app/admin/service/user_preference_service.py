@@ -19,9 +19,7 @@ class UserPreferenceService:
         return UserPreferenceSchema()
 
     @staticmethod
-    async def save_preferences(
-        db: AsyncSession, user_id: int, obj: UpdateUserPreferenceParam
-    ) -> UserPreferenceSchema:
+    async def save_preferences(db: AsyncSession, user_id: int, obj: UpdateUserPreferenceParam) -> UserPreferenceSchema:
         """保存用户偏好（存在则更新，否则创建）；profile_cover 为 data URI 时先落盘再存路径"""
         row = await user_preference_dao.get_by_user_id(db, user_id)
         old_cover = row.profile_cover if row else None

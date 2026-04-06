@@ -1,13 +1,15 @@
 """Docker管理相关的Schema"""
+
 from typing import Any
 
 from pydantic import BaseModel, Field
 
-
 # ==================== 容器管理 ====================
+
 
 class ContainerListResponse(BaseModel):
     """容器列表响应"""
+
     id: str = Field(description='容器ID')
     name: str = Field(description='容器名称')
     image: str = Field(description='镜像名称')
@@ -21,6 +23,7 @@ class ContainerListResponse(BaseModel):
 
 class ContainerDetailResponse(BaseModel):
     """容器详情响应"""
+
     id: str = Field(description='容器ID')
     name: str = Field(description='容器名称')
     image: str = Field(description='镜像名称')
@@ -43,6 +46,7 @@ class ContainerDetailResponse(BaseModel):
 
 class CreateContainerParam(BaseModel):
     """创建容器参数"""
+
     image: str = Field(description='镜像名称')
     name: str | None = Field(None, description='容器名称')
     command: list[str] | None = Field(None, description='启动命令')
@@ -65,12 +69,14 @@ class CreateContainerParam(BaseModel):
 
 class ContainerLogsParam(BaseModel):
     """容器日志参数"""
+
     tail: int = Field(100, description='显示最后N行')
     follow: bool = Field(False, description='是否持续跟踪')
 
 
 class ContainerStatsResponse(BaseModel):
     """容器统计信息响应"""
+
     cpu_percent: float = Field(description='CPU使用率（百分比）')
     memory_usage: int = Field(description='内存使用量（字节）')
     memory_limit: int = Field(description='内存限制（字节）')
@@ -84,8 +90,10 @@ class ContainerStatsResponse(BaseModel):
 
 # ==================== 镜像管理 ====================
 
+
 class ImageListResponse(BaseModel):
     """镜像列表响应"""
+
     id: str = Field(description='镜像ID')
     tags: list[str] = Field(description='标签列表')
     size: int = Field(description='大小（字节）')
@@ -94,6 +102,7 @@ class ImageListResponse(BaseModel):
 
 class ImageLayerResponse(BaseModel):
     """镜像层响应"""
+
     order: int = Field(description='层顺序')
     size: int = Field(description='层大小（字节）')
     layer: str = Field(description='层命令')
@@ -101,6 +110,7 @@ class ImageLayerResponse(BaseModel):
 
 class ImageDetailResponse(BaseModel):
     """镜像详情响应"""
+
     id: str = Field(description='镜像ID')
     tags: list[str] = Field(description='标签列表')
     cmd: list[str] | None = Field(None, description='CMD命令')
@@ -113,12 +123,14 @@ class ImageDetailResponse(BaseModel):
 
 class PullImageParam(BaseModel):
     """拉取镜像参数"""
+
     image: str = Field(description='镜像名称')
     tag: str = Field('latest', description='标签')
 
 
 class BuildImageParam(BaseModel):
     """构建镜像参数"""
+
     path: str = Field(description='构建上下文路径')
     tag: str = Field(description='镜像标签')
     dockerfile: str = Field('Dockerfile', description='Dockerfile路径')
@@ -127,8 +139,10 @@ class BuildImageParam(BaseModel):
 
 # ==================== 堆栈管理 ====================
 
+
 class StackListResponse(BaseModel):
     """堆栈列表响应"""
+
     name: str = Field(description='堆栈名称')
     status: str = Field(description='状态')
     config_files: list[str] = Field(description='配置文件列表')
@@ -139,18 +153,21 @@ class StackListResponse(BaseModel):
 
 class DeployStackParam(BaseModel):
     """部署堆栈参数"""
+
     compose_file: str = Field(description='Compose文件路径')
     project_name: str | None = Field(None, description='项目名称')
 
 
 class StopStackParam(BaseModel):
     """停止堆栈参数"""
+
     project_name: str = Field(description='项目名称')
     compose_file: str | None = Field(None, description='Compose文件路径')
 
 
 class RemoveStackParam(BaseModel):
     """删除堆栈参数"""
+
     project_name: str = Field(description='项目名称')
     compose_file: str | None = Field(None, description='Compose文件路径')
     volumes: bool = Field(False, description='是否同时删除卷')
@@ -158,14 +175,17 @@ class RemoveStackParam(BaseModel):
 
 class StackServicesParam(BaseModel):
     """堆栈服务列表参数"""
+
     project_name: str = Field(description='项目名称')
     compose_file: str | None = Field(None, description='Compose文件路径')
 
 
 # ==================== 网络管理 ====================
 
+
 class NetworkListResponse(BaseModel):
     """网络列表响应"""
+
     id: str = Field(description='网络ID')
     name: str = Field(description='网络名称')
     driver: str = Field(description='驱动类型')
@@ -184,6 +204,7 @@ class NetworkListResponse(BaseModel):
 
 class CreateNetworkParam(BaseModel):
     """创建网络参数"""
+
     name: str = Field(description='网络名称')
     driver: str = Field('bridge', description='驱动类型')
     subnet: str | None = Field(None, description='子网')
@@ -192,8 +213,10 @@ class CreateNetworkParam(BaseModel):
 
 # ==================== 卷管理 ====================
 
+
 class VolumeListResponse(BaseModel):
     """卷列表响应"""
+
     name: str = Field(description='卷名称')
     driver: str = Field(description='驱动类型')
     mountpoint: str = Field(description='挂载点')
@@ -205,6 +228,7 @@ class VolumeListResponse(BaseModel):
 
 class CreateVolumeParam(BaseModel):
     """创建卷参数"""
+
     name: str = Field(description='卷名称')
     driver: str = Field('local', description='驱动类型')
     driver_opts: dict[str, str] | None = Field(None, description='驱动选项')
@@ -212,8 +236,10 @@ class CreateVolumeParam(BaseModel):
 
 # ==================== 系统信息 ====================
 
+
 class SystemInfoResponse(BaseModel):
     """系统信息响应"""
+
     containers: int = Field(description='容器总数')
     containers_running: int = Field(description='运行中容器数')
     containers_paused: int = Field(description='暂停容器数')
@@ -232,6 +258,7 @@ class SystemInfoResponse(BaseModel):
 
 class DiskUsageResponse(BaseModel):
     """磁盘使用情况响应"""
+
     images_size: int = Field(description='镜像大小（字节）')
     containers_size: int = Field(description='容器大小（字节）')
     volumes_size: int = Field(description='卷大小（字节）')
@@ -241,18 +268,22 @@ class DiskUsageResponse(BaseModel):
 
 class ConnectedStatusResponse(BaseModel):
     """连接状态响应"""
+
     connected: bool = Field(description='连接状态')
 
 
 class SetConnectedStatusParam(BaseModel):
     """设置连接状态参数"""
+
     connected: bool = Field(description='连接状态')
 
 
 # ==================== 镜像源管理 ====================
 
+
 class RegistrySourceResponse(BaseModel):
     """镜像源响应"""
+
     id: str = Field(description='镜像源ID')
     name: str = Field(description='镜像源名称')
     url: str = Field(description='镜像源URL')
@@ -261,12 +292,13 @@ class RegistrySourceResponse(BaseModel):
 
 class CreateRegistrySourceParam(BaseModel):
     """创建镜像源参数"""
+
     name: str = Field(description='镜像源名称')
     url: str = Field(description='镜像源URL')
 
 
 class UpdateRegistrySourceParam(BaseModel):
     """更新镜像源参数"""
+
     name: str | None = Field(None, description='镜像源名称')
     url: str | None = Field(None, description='镜像源URL')
-

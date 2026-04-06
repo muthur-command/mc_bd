@@ -8,4 +8,4 @@ import pytest
 @pytest.fixture
 def aes_key_hex_64_chars() -> str:
     """32 字节 AES 密钥的 64 位十六进制字符串表示。"""
-    return "0" * 64
+    return '0' * 64

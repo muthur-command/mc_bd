@@ -12,11 +12,13 @@ try:
     from backend.plugin.config.enums import ConfigType
 except ModuleNotFoundError:
     config_dao = None
+
     # 无 config 插件时的占位，仅用于类型/调用兼容
     class ConfigType:
         user_security = 0
         login = 1
         email = 2
+
 
 _sys_config_table_exists: bool | None = None
 

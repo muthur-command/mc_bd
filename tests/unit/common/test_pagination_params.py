@@ -14,19 +14,19 @@ def test_custom_page_params_to_raw_params() -> None:
 
 def test_page_data_model_structure() -> None:
     pd = PageData[dict](
-        items=({"id": 1},),
+        items=({'id': 1},),
         total=1,
         page=1,
         size=20,
         total_pages=1,
         links={  # type: ignore[arg-type]
-            "first": "",
-            "last": "",
-            "self": "",
-            "next": None,
-            "prev": None,
+            'first': '',
+            'last': '',
+            'self': '',
+            'next': None,
+            'prev': None,
         },
     )
     d = pd.model_dump()
-    assert d["total"] == 1
-    assert len(d["items"]) == 1
+    assert d['total'] == 1
+    assert len(d['items']) == 1

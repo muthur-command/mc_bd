@@ -1,6 +1,8 @@
 """Docker服务层"""
+
 import re
 import subprocess
+
 from typing import Any
 
 from python_on_whales import DockerClient, docker
@@ -15,7 +17,7 @@ from backend.plugin.docker.model.docker_config import DockerConfig
 class DockerService:
     """Docker服务类"""
 
-    def __init__(self):
+    def __init__(self) -> None:
         """初始化Docker客户端"""
         try:
             self.client: DockerClient = docker
@@ -33,31 +35,32 @@ class DockerService:
         """
         if not size_str or size_str == '0B':
             return 0
-        
+
         # 移除空格并转换为大写
         size_str = size_str.strip().upper()
-        
+
         # 单位映射
         units = {
             'B': 1,
             'KB': 1024,
-            'MB': 1024 ** 2,
-            'GB': 1024 ** 3,
-            'TB': 1024 ** 4,
+            'MB': 1024**2,
+            'GB': 1024**3,
+            'TB': 1024**4,
         }
-        
+
         # 提取数字和单位
         import re
+
         match = re.match(r'([\d.]+)\s*([A-Z]+)?', size_str)
         if not match:
             return 0
-        
+
         value = float(match.group(1))
         unit = match.group(2) or 'B'
-        
+
         # 获取单位倍数
         multiplier = units.get(unit, 1)
-        
+
         return int(value * multiplier)
 
     # ==================== 容器管理 ====================
@@ -72,23 +75,22 @@ class DockerService:
         try:
             containers = self.client.container.list(all=all)
             result = []
-            
+
             # 获取所有镜像列表，用于通过镜像ID查询tag信息
             image_map = {}
             try:
                 images = self.client.image.list(all=True)
                 for image in images:
                     image_id = image.id
-                    if image_id.startswith('sha256:'):
-                        image_id = image_id[7:]
+                    image_id = image_id.removeprefix('sha256:')
                     # 使用完整ID和短ID（前12位）作为键
-                    image_map[image_id] = image.repo_tags if image.repo_tags else []
+                    image_map[image_id] = image.repo_tags or []
                     if len(image_id) > 12:
-                        image_map[image_id[:12]] = image.repo_tags if image.repo_tags else []
+                        image_map[image_id[:12]] = image.repo_tags or []
             except Exception as e:
                 log.warning(f'获取镜像列表失败: {e}')
                 image_map = {}
-            
+
             for container in containers:
                 # 使用 inspect 获取详细信息
                 inspected = None
@@ -96,7 +98,7 @@ class DockerService:
                 try:
                     inspected = self.client.container.inspect(container.id)
                     log.debug(f'容器 {container.name} ({container.id[:12]}) inspect 类型: {type(inspected)}')
-                    
+
                     # python-on-whales 可能返回对象或字典，尝试转换为字典
                     if hasattr(inspected, '__dict__'):
                         # 如果是对象，尝试获取其字典表示
@@ -112,11 +114,12 @@ class DockerService:
                         # 尝试使用 json 方法
                         try:
                             import json
+
                             inspected_dict = json.loads(json.dumps(inspected, default=str))
                             log.debug(f'容器 {container.name} 使用 json 转换数据')
                         except Exception as e:
                             log.debug(f'容器 {container.name} json 转换失败: {e}')
-                    
+
                     # 记录 inspect 结果的关键字段
                     if inspected_dict:
                         log.debug(f'容器 {container.name} inspect_dict 键: {list(inspected_dict.keys())[:10]}')
@@ -124,27 +127,27 @@ class DockerService:
                     log.warning(f'获取容器 {container.id} 详细信息失败: {e}')
                     inspected = None
                     inspected_dict = None
-                
+
                 # 获取镜像信息 - 通过镜像ID获取tag信息
                 image_name = str(container.image) if container.image else 'unknown'
                 s_image_id = container.image
-                if s_image_id.startswith('sha256:'):
-                    s_image_id = s_image_id[7:]
+                s_image_id = s_image_id.removeprefix('sha256:')
                 images = self.client.image.list(all=all)
                 for image in images:
                     # 提取镜像ID，去掉 sha256: 前缀，只保留前12个字符
                     image_id = image.id
-                    if image_id.startswith('sha256:'):
-                        image_id = image_id[7:]
+                    image_id = image_id.removeprefix('sha256:')
                     if s_image_id == image_id:
                         image_name = image.repo_tags[0] if image.repo_tags else image_id
-                
+
                 # 获取端口信息 - 格式化为 "host:container" 格式
                 port_mappings = []
                 if inspected_dict:
                     # 从 inspect 字典结果获取端口映射
                     network_settings = inspected_dict.get('NetworkSettings') or inspected_dict.get('network_settings')
-                    log.debug(f'容器 {container.name} network_settings 类型: {type(network_settings)}, 值: {network_settings is not None}')
+                    log.debug(
+                        f'容器 {container.name} network_settings 类型: {type(network_settings)}, 值: {network_settings is not None}'
+                    )
                     if network_settings:
                         ports = network_settings.get('Ports') or network_settings.get('ports')
                         log.debug(f'容器 {container.name} ports 类型: {type(ports)}, 值: {ports}')
@@ -158,41 +161,42 @@ class DockerService:
                                             if isinstance(host_port_info, dict):
                                                 host_port = host_port_info.get('HostPort', '')
                                                 if host_port:
-                                                    port_str = f"{host_port}:{container_port.split('/')[0]}"
+                                                    port_str = f'{host_port}:{container_port.split("/")[0]}'
                                                     port_mappings.append(port_str)
                                                     log.debug(f'容器 {container.name} 添加端口映射: {port_str}')
                                     elif isinstance(host_ports, dict):
                                         host_port = host_ports.get('HostPort', '')
                                         if host_port:
-                                            port_str = f"{host_port}:{container_port.split('/')[0]}"
+                                            port_str = f'{host_port}:{container_port.split("/")[0]}'
                                             port_mappings.append(port_str)
                                             log.debug(f'容器 {container.name} 添加端口映射: {port_str}')
-                
+
                 # 如果 inspected_dict 中没有找到，尝试从 inspected 对象获取
                 if not port_mappings and inspected:
                     try:
-                        network_settings = getattr(inspected, 'network_settings', None) or getattr(inspected, 'NetworkSettings', None)
+                        network_settings = getattr(inspected, 'network_settings', None) or getattr(
+                            inspected, 'NetworkSettings', None
+                        )
                         if network_settings:
                             ports = getattr(network_settings, 'ports', None) or getattr(network_settings, 'Ports', None)
-                            if ports:
-                                if isinstance(ports, dict):
-                                    for container_port, host_ports in ports.items():
-                                        if host_ports:
-                                            if isinstance(host_ports, list):
-                                                for host_port_info in host_ports:
-                                                    if isinstance(host_port_info, dict):
-                                                        host_port = host_port_info.get('HostPort', '')
-                                                        if host_port:
-                                                            port_str = f"{host_port}:{container_port.split('/')[0]}"
-                                                            port_mappings.append(port_str)
-                                            elif isinstance(host_ports, dict):
-                                                host_port = host_ports.get('HostPort', '')
-                                                if host_port:
-                                                    port_str = f"{host_port}:{container_port.split('/')[0]}"
-                                                    port_mappings.append(port_str)
+                            if ports and isinstance(ports, dict):
+                                for container_port, host_ports in ports.items():
+                                    if host_ports:
+                                        if isinstance(host_ports, list):
+                                            for host_port_info in host_ports:
+                                                if isinstance(host_port_info, dict):
+                                                    host_port = host_port_info.get('HostPort', '')
+                                                    if host_port:
+                                                        port_str = f'{host_port}:{container_port.split("/")[0]}'
+                                                        port_mappings.append(port_str)
+                                        elif isinstance(host_ports, dict):
+                                            host_port = host_ports.get('HostPort', '')
+                                            if host_port:
+                                                port_str = f'{host_port}:{container_port.split("/")[0]}'
+                                                port_mappings.append(port_str)
                     except Exception as e:
                         log.debug(f'从对象获取端口信息失败: {e}')
-                
+
                 # 获取IP地址 - 从网络设置中获取第一个网络的IP
                 ip_address = None
                 if inspected_dict:
@@ -203,33 +207,38 @@ class DockerService:
                         if networks:
                             # 获取第一个网络的IP地址
                             for network_name, network_info in networks.items():
-                                log.debug(f'容器 {container.name} 网络 {network_name} 信息: {type(network_info)}, {network_info}')
+                                log.debug(
+                                    f'容器 {container.name} 网络 {network_name} 信息: {type(network_info)}, {network_info}'
+                                )
                                 if isinstance(network_info, dict):
                                     ip_address = network_info.get('IPAddress') or network_info.get('ip_address')
                                     if ip_address:
                                         log.debug(f'容器 {container.name} 找到IP地址: {ip_address}')
                                         break
-                
+
                 # 如果 inspected_dict 中没有找到，尝试从 inspected 对象获取
                 if not ip_address and inspected:
                     try:
-                        network_settings = getattr(inspected, 'network_settings', None) or getattr(inspected, 'NetworkSettings', None)
+                        network_settings = getattr(inspected, 'network_settings', None) or getattr(
+                            inspected, 'NetworkSettings', None
+                        )
                         if network_settings:
-                            networks = getattr(network_settings, 'networks', None) or getattr(network_settings, 'Networks', None)
-                            if networks:
-                                if isinstance(networks, dict):
-                                    for network_name, network_info in networks.items():
-                                        if hasattr(network_info, 'ip_address'):
-                                            ip_address = network_info.ip_address
-                                            if ip_address:
-                                                break
-                                        elif isinstance(network_info, dict):
-                                            ip_address = network_info.get('IPAddress') or network_info.get('ip_address')
-                                            if ip_address:
-                                                break
+                            networks = getattr(network_settings, 'networks', None) or getattr(
+                                network_settings, 'Networks', None
+                            )
+                            if networks and isinstance(networks, dict):
+                                for network_name, network_info in networks.items():
+                                    if hasattr(network_info, 'ip_address'):
+                                        ip_address = network_info.ip_address
+                                        if ip_address:
+                                            break
+                                    elif isinstance(network_info, dict):
+                                        ip_address = network_info.get('IPAddress') or network_info.get('ip_address')
+                                        if ip_address:
+                                            break
                     except Exception as e:
                         log.debug(f'从对象获取IP地址失败: {e}')
-                
+
                 # 获取堆栈名称 - 从标签中获取 compose project
                 stack = None
                 if inspected_dict:
@@ -239,13 +248,15 @@ class DockerService:
                         labels = config.get('Labels') or config.get('labels')
                         log.debug(f'容器 {container.name} labels 类型: {type(labels)}, 值: {labels}')
                         if labels and isinstance(labels, dict):
-                            stack = labels.get('com.docker.compose.project') or labels.get('com.docker.compose.project.working_dir')
+                            stack = labels.get('com.docker.compose.project') or labels.get(
+                                'com.docker.compose.project.working_dir'
+                            )
                             log.debug(f'容器 {container.name} 从标签获取 stack: {stack}')
                             # 如果找到项目目录，提取项目名称
                             if stack and '/' in stack:
                                 stack = stack.split('/')[-1]
                                 log.debug(f'容器 {container.name} 提取后的 stack: {stack}')
-                
+
                 # 如果 inspected_dict 中没有找到，尝试从 inspected 对象获取
                 if not stack and inspected:
                     try:
@@ -253,17 +264,15 @@ class DockerService:
                         if config:
                             labels = getattr(config, 'labels', None) or getattr(config, 'Labels', None)
                             if labels:
-                                if isinstance(labels, dict):
-                                    stack = labels.get('com.docker.compose.project') or labels.get('com.docker.compose.project.working_dir')
-                                    if stack and '/' in stack:
-                                        stack = stack.split('/')[-1]
-                                elif hasattr(labels, 'get'):
-                                    stack = labels.get('com.docker.compose.project') or labels.get('com.docker.compose.project.working_dir')
+                                if isinstance(labels, dict) or hasattr(labels, 'get'):
+                                    stack = labels.get('com.docker.compose.project') or labels.get(
+                                        'com.docker.compose.project.working_dir'
+                                    )
                                     if stack and '/' in stack:
                                         stack = stack.split('/')[-1]
                     except Exception as e:
                         log.debug(f'从对象获取堆栈信息失败: {e}')
-                
+
                 # 获取创建时间
                 created = None
                 if inspected_dict:
@@ -277,10 +286,14 @@ class DockerService:
                         pass
                 if not created and hasattr(container, 'created') and container.created:
                     try:
-                        created = container.created.isoformat() if hasattr(container.created, 'isoformat') else str(container.created)
+                        created = (
+                            container.created.isoformat()
+                            if hasattr(container.created, 'isoformat')
+                            else str(container.created)
+                        )
                     except:
                         created = None
-                
+
                 # 获取状态
                 status = 'unknown'
                 if inspected_dict:
@@ -309,10 +322,10 @@ class DockerService:
                             status = state.status
                     except:
                         pass
-                
+
                 # 所有权 - 暂时使用默认值，后续可以从用户权限系统获取
                 ownership = 'administrators'
-                
+
                 container_data = {
                     'id': container.id[:12] if len(container.id) > 12 else container.id,
                     'name': container.name,
@@ -324,7 +337,9 @@ class DockerService:
                     'ip_address': ip_address,
                     'ownership': ownership,
                 }
-                log.info(f'容器 {container.name} 数据: status={status}, ports={len(port_mappings)}, stack={stack}, ip={ip_address}, created={created}')
+                log.info(
+                    f'容器 {container.name} 数据: status={status}, ports={len(port_mappings)}, stack={stack}, ip={ip_address}, created={created}'
+                )
                 result.append(container_data)
             log.info(f'返回 {len(result)} 个容器的数据')
             return result
@@ -342,11 +357,12 @@ class DockerService:
         try:
             import datetime
             import json
+
             container = self.client.container.inspect(container_id)
-            
+
             # 获取完整容器ID
             full_id = container.id
-            
+
             # 尝试将container对象转换为字典（类似list_containers的逻辑）
             inspected_dict = None
             if hasattr(container, '__dict__'):
@@ -361,7 +377,7 @@ class DockerService:
                     inspected_dict = json.loads(json.dumps(container, default=str))
                 except Exception:
                     pass
-            
+
             # 获取IP地址（从网络设置中获取第一个网络的IP）
             ip_address = None
             if inspected_dict:
@@ -374,34 +390,37 @@ class DockerService:
                                 ip_address = network_info.get('IPAddress') or network_info.get('ip_address')
                                 if ip_address:
                                     break
-            
+
             # 如果 inspected_dict 中没有找到，尝试从 container 对象获取
             if not ip_address:
                 try:
-                    network_settings = getattr(container, 'network_settings', None) or getattr(container, 'NetworkSettings', None)
+                    network_settings = getattr(container, 'network_settings', None) or getattr(
+                        container, 'NetworkSettings', None
+                    )
                     if network_settings:
-                        networks = getattr(network_settings, 'networks', None) or getattr(network_settings, 'Networks', None)
-                        if networks:
-                            if isinstance(networks, dict):
-                                for network_name, network_info in networks.items():
-                                    if hasattr(network_info, 'ip_address'):
-                                        ip_address = network_info.ip_address
-                                        if ip_address:
-                                            break
-                                    elif isinstance(network_info, dict):
-                                        ip_address = network_info.get('IPAddress') or network_info.get('ip_address')
-                                        if ip_address:
-                                            break
+                        networks = getattr(network_settings, 'networks', None) or getattr(
+                            network_settings, 'Networks', None
+                        )
+                        if networks and isinstance(networks, dict):
+                            for network_name, network_info in networks.items():
+                                if hasattr(network_info, 'ip_address'):
+                                    ip_address = network_info.ip_address
+                                    if ip_address:
+                                        break
+                                elif isinstance(network_info, dict):
+                                    ip_address = network_info.get('IPAddress') or network_info.get('ip_address')
+                                    if ip_address:
+                                        break
                 except Exception as e:
                     log.debug(f'从对象获取IP地址失败: {e}')
-            
+
             # 获取启动时间
             started_at = None
             if inspected_dict:
                 state = inspected_dict.get('State') or inspected_dict.get('state')
                 if state:
                     started_at = state.get('StartedAt') or state.get('started_at')
-            
+
             if not started_at:
                 try:
                     state = getattr(container, 'state', None) or getattr(container, 'State', None)
@@ -414,14 +433,14 @@ class DockerService:
                                 started_at = str(started_at_attr)
                 except Exception as e:
                     log.debug(f'获取启动时间失败: {e}')
-            
+
             # 获取状态
             status = 'unknown'
             if inspected_dict:
                 state = inspected_dict.get('State') or inspected_dict.get('state')
                 if state:
                     status = state.get('Status') or state.get('status') or 'unknown'
-            
+
             if status == 'unknown':
                 try:
                     state = getattr(container, 'state', None) or getattr(container, 'State', None)
@@ -429,7 +448,7 @@ class DockerService:
                         status = getattr(state, 'status', None) or getattr(state, 'Status', None) or 'unknown'
                 except Exception:
                     pass
-            
+
             # 计算运行时长（如果容器正在运行）
             running_for = None
             if started_at and status == 'running':
@@ -440,47 +459,44 @@ class DockerService:
                         start_time = datetime.datetime.fromisoformat(started_at_clean)
                     else:
                         start_time = started_at
-                    
+
                     now = datetime.datetime.now(datetime.timezone.utc)
                     if start_time.tzinfo is None:
                         start_time = start_time.replace(tzinfo=datetime.timezone.utc)
-                    
+
                     delta = now - start_time
                     total_seconds = int(delta.total_seconds())
                     minutes = total_seconds // 60
                     hours = minutes // 60
                     days = hours // 24
-                    
+
                     if days > 0:
-                        running_for = f"{days} days, {hours % 24} hours"
+                        running_for = f'{days} days, {hours % 24} hours'
                     elif hours > 0:
-                        running_for = f"{hours} hours, {minutes % 60} minutes"
+                        running_for = f'{hours} hours, {minutes % 60} minutes'
                     else:
-                        running_for = f"{minutes} minutes"
+                        running_for = f'{minutes} minutes'
                 except Exception as e:
                     log.warning(f'计算运行时长失败: {e}')
-            
+
             # 格式化状态文本
             status_text = status
             if running_for and status == 'running':
-                status_text = f"Running for {running_for}"
-            
+                status_text = f'Running for {running_for}'
+
             # 获取创建时间
             created = None
             if inspected_dict:
                 created = inspected_dict.get('Created') or inspected_dict.get('created')
-            
+
             if not created:
                 try:
                     created_attr = getattr(container, 'created', None) or getattr(container, 'Created', None)
                     if created_attr:
-                        if hasattr(created_attr, 'isoformat'):
-                            created = created_attr.isoformat()
-                        else:
-                            created = str(created_attr)
+                        created = created_attr.isoformat() if hasattr(created_attr, 'isoformat') else str(created_attr)
                 except Exception:
                     pass
-            
+
             # 获取working_dir并转换为字符串
             working_dir = None
             if hasattr(container, 'config') and hasattr(container.config, 'working_dir'):
@@ -488,7 +504,7 @@ class DockerService:
                 if working_dir_value is not None:
                     # 如果是Path对象，转换为字符串
                     working_dir = str(working_dir_value)
-            
+
             # 获取镜像SHA256
             image_sha256 = None
             image_full = None
@@ -499,7 +515,7 @@ class DockerService:
                     parts = image_full.split('@sha256:')
                     if len(parts) == 2:
                         image_sha256 = parts[1]
-            
+
             if not image_sha256:
                 try:
                     image_attr = getattr(container, 'image', None) or getattr(container, 'Image', None)
@@ -511,14 +527,14 @@ class DockerService:
                                 image_sha256 = parts[1]
                 except Exception:
                     pass
-            
+
             # 获取entrypoint
             entrypoint = None
             if inspected_dict:
                 config = inspected_dict.get('Config') or inspected_dict.get('config')
                 if config:
                     entrypoint = config.get('Entrypoint') or config.get('entrypoint')
-            
+
             if not entrypoint:
                 try:
                     if hasattr(container, 'config') and hasattr(container.config, 'entrypoint'):
@@ -531,14 +547,14 @@ class DockerService:
                             entrypoint = entrypoint_value if isinstance(entrypoint_value, list) else [entrypoint_value]
                 except Exception:
                     pass
-            
+
             # 获取labels
             labels = None
             if inspected_dict:
                 config = inspected_dict.get('Config') or inspected_dict.get('config')
                 if config:
                     labels = config.get('Labels') or config.get('labels')
-            
+
             if not labels:
                 try:
                     if hasattr(container, 'config') and hasattr(container.config, 'labels'):
@@ -547,7 +563,7 @@ class DockerService:
                         labels = container.config.Labels
                 except Exception:
                     pass
-            
+
             # 获取restart policy
             restart_policy = None
             if inspected_dict:
@@ -559,12 +575,14 @@ class DockerService:
                             restart_policy = restart_policy_info.get('Name') or restart_policy_info.get('name')
                         else:
                             restart_policy = str(restart_policy_info)
-            
+
             if not restart_policy:
                 try:
                     host_config = getattr(container, 'host_config', None) or getattr(container, 'HostConfig', None)
                     if host_config:
-                        restart_policy_attr = getattr(host_config, 'restart_policy', None) or getattr(host_config, 'RestartPolicy', None)
+                        restart_policy_attr = getattr(host_config, 'restart_policy', None) or getattr(
+                            host_config, 'RestartPolicy', None
+                        )
                         if restart_policy_attr:
                             if hasattr(restart_policy_attr, 'name'):
                                 restart_policy = restart_policy_attr.name
@@ -576,10 +594,14 @@ class DockerService:
                                 restart_policy = str(restart_policy_attr)
                 except Exception:
                     pass
-            
+
             # 格式化端口配置
             port_configuration = []
-            ports_data = container.network_settings.ports if hasattr(container, 'network_settings') and hasattr(container.network_settings, 'ports') else {}
+            ports_data = (
+                container.network_settings.ports
+                if hasattr(container, 'network_settings') and hasattr(container.network_settings, 'ports')
+                else {}
+            )
             if ports_data:
                 for container_port, host_ports in ports_data.items():
                     if host_ports:
@@ -589,18 +611,20 @@ class DockerService:
                                     host_ip = host_port_info.get('HostIp', '0.0.0.0')
                                     host_port = host_port_info.get('HostPort', '')
                                     if host_port:
-                                        port_configuration.append(f"{host_ip}:{host_port} -> {container_port}")
+                                        port_configuration.append(f'{host_ip}:{host_port} -> {container_port}')
                         elif isinstance(host_ports, dict):
                             host_ip = host_ports.get('HostIp', '0.0.0.0')
                             host_port = host_ports.get('HostPort', '')
                             if host_port:
-                                port_configuration.append(f"{host_ip}:{host_port} -> {container_port}")
-            
+                                port_configuration.append(f'{host_ip}:{host_port} -> {container_port}')
+
             # 格式化镜像信息（包含SHA256）
-            image_display = container.config.image if hasattr(container, 'config') and hasattr(container.config, 'image') else ''
+            image_display = (
+                container.config.image if hasattr(container, 'config') and hasattr(container.config, 'image') else ''
+            )
             if image_sha256 and image_display:
-                image_display = f"{image_display}@sha256:{image_sha256}"
-            
+                image_display = f'{image_display}@sha256:{image_sha256}'
+
             # 获取volumes/mounts信息
             volumes_list = []
             if inspected_dict:
@@ -608,31 +632,41 @@ class DockerService:
                 if mounts and isinstance(mounts, list):
                     for mount in mounts:
                         if isinstance(mount, dict):
-                            source = mount.get('Source') or mount.get('source') or mount.get('Name') or mount.get('name') or ''
+                            source = (
+                                mount.get('Source')
+                                or mount.get('source')
+                                or mount.get('Name')
+                                or mount.get('name')
+                                or ''
+                            )
                             destination = mount.get('Destination') or mount.get('destination') or ''
                             if source and destination:
                                 volumes_list.append({
                                     'host_volume': source,
                                     'container_path': destination,
                                 })
-            
+
             if not volumes_list:
                 try:
                     mounts_attr = getattr(container, 'mounts', None) or getattr(container, 'Mounts', None)
-                    if mounts_attr:
-                        if isinstance(mounts_attr, list):
-                            for mount in mounts_attr:
-                                if hasattr(mount, 'source') or hasattr(mount, 'Source'):
-                                    source = getattr(mount, 'source', None) or getattr(mount, 'Source', None) or getattr(mount, 'name', None) or getattr(mount, 'Name', None)
-                                    destination = getattr(mount, 'destination', None) or getattr(mount, 'Destination', None)
-                                    if source and destination:
-                                        volumes_list.append({
-                                            'host_volume': str(source),
-                                            'container_path': str(destination),
-                                        })
+                    if mounts_attr and isinstance(mounts_attr, list):
+                        for mount in mounts_attr:
+                            if hasattr(mount, 'source') or hasattr(mount, 'Source'):
+                                source = (
+                                    getattr(mount, 'source', None)
+                                    or getattr(mount, 'Source', None)
+                                    or getattr(mount, 'name', None)
+                                    or getattr(mount, 'Name', None)
+                                )
+                                destination = getattr(mount, 'destination', None) or getattr(mount, 'Destination', None)
+                                if source and destination:
+                                    volumes_list.append({
+                                        'host_volume': str(source),
+                                        'container_path': str(destination),
+                                    })
                 except Exception as e:
                     log.debug(f'获取volumes信息失败: {e}')
-            
+
             # 获取networks信息
             networks_list = []
             if inspected_dict:
@@ -646,32 +680,49 @@ class DockerService:
                                     'network': network_name,
                                     'ip_address': network_info.get('IPAddress') or network_info.get('ip_address') or '',
                                     'gateway': network_info.get('Gateway') or network_info.get('gateway') or '',
-                                    'mac_address': network_info.get('MacAddress') or network_info.get('mac_address') or '',
+                                    'mac_address': network_info.get('MacAddress')
+                                    or network_info.get('mac_address')
+                                    or '',
                                 }
                                 networks_list.append(network_data)
-            
+
             # 如果inspected_dict中没有找到，尝试从container对象获取
             if not networks_list:
                 try:
-                    network_settings = getattr(container, 'network_settings', None) or getattr(container, 'NetworkSettings', None)
+                    network_settings = getattr(container, 'network_settings', None) or getattr(
+                        container, 'NetworkSettings', None
+                    )
                     if network_settings:
-                        networks = getattr(network_settings, 'networks', None) or getattr(network_settings, 'Networks', None)
-                        if networks:
-                            if isinstance(networks, dict):
-                                for network_name, network_info in networks.items():
-                                    network_data = {
-                                        'network': network_name,
-                                        'ip_address': '',
-                                        'gateway': '',
-                                        'mac_address': '',
-                                    }
-                                    if hasattr(network_info, 'ip_address') or hasattr(network_info, 'IPAddress'):
-                                        network_data['ip_address'] = str(getattr(network_info, 'ip_address', None) or getattr(network_info, 'IPAddress', None) or '')
-                                    if hasattr(network_info, 'gateway') or hasattr(network_info, 'Gateway'):
-                                        network_data['gateway'] = str(getattr(network_info, 'gateway', None) or getattr(network_info, 'Gateway', None) or '')
-                                    if hasattr(network_info, 'mac_address') or hasattr(network_info, 'MacAddress'):
-                                        network_data['mac_address'] = str(getattr(network_info, 'mac_address', None) or getattr(network_info, 'MacAddress', None) or '')
-                                    networks_list.append(network_data)
+                        networks = getattr(network_settings, 'networks', None) or getattr(
+                            network_settings, 'Networks', None
+                        )
+                        if networks and isinstance(networks, dict):
+                            for network_name, network_info in networks.items():
+                                network_data = {
+                                    'network': network_name,
+                                    'ip_address': '',
+                                    'gateway': '',
+                                    'mac_address': '',
+                                }
+                                if hasattr(network_info, 'ip_address') or hasattr(network_info, 'IPAddress'):
+                                    network_data['ip_address'] = str(
+                                        getattr(network_info, 'ip_address', None)
+                                        or getattr(network_info, 'IPAddress', None)
+                                        or ''
+                                    )
+                                if hasattr(network_info, 'gateway') or hasattr(network_info, 'Gateway'):
+                                    network_data['gateway'] = str(
+                                        getattr(network_info, 'gateway', None)
+                                        or getattr(network_info, 'Gateway', None)
+                                        or ''
+                                    )
+                                if hasattr(network_info, 'mac_address') or hasattr(network_info, 'MacAddress'):
+                                    network_data['mac_address'] = str(
+                                        getattr(network_info, 'mac_address', None)
+                                        or getattr(network_info, 'MacAddress', None)
+                                        or ''
+                                    )
+                                networks_list.append(network_data)
                     # 如果还没有找到，使用之前获取的ip_address作为默认网络的IP
                     if not networks_list and ip_address:
                         networks_list.append({
@@ -682,7 +733,7 @@ class DockerService:
                         })
                 except Exception as e:
                     log.debug(f'获取networks信息失败: {e}')
-            
+
             return {
                 'id': full_id,  # 返回完整ID
                 'name': container.name if hasattr(container, 'name') else '',
@@ -690,14 +741,18 @@ class DockerService:
                 'status': status_text,
                 'created': created,
                 'ports': ports_data,
-                'env': container.config.env if hasattr(container, 'config') and hasattr(container.config, 'env') else [],
-                'command': container.config.cmd if hasattr(container, 'config') and hasattr(container.config, 'cmd') else None,
+                'env': container.config.env
+                if hasattr(container, 'config') and hasattr(container.config, 'env')
+                else [],
+                'command': container.config.cmd
+                if hasattr(container, 'config') and hasattr(container.config, 'cmd')
+                else None,
                 'working_dir': working_dir,
                 'ip_address': ip_address,
                 'started_at': started_at,
                 'running_for': running_for,
                 'entrypoint': entrypoint,
-                'labels': labels if labels else {},
+                'labels': labels or {},
                 'restart_policy': restart_policy or 'no',
                 'port_configuration': port_configuration,
                 'volumes': volumes_list,
@@ -814,7 +869,7 @@ class DockerService:
             # 如果需要 auto_remove，需要在容器退出时手动删除
 
             container = self.client.container.create(**create_kwargs)
-            
+
             # 如果设置了 auto_remove，需要在容器退出时自动删除
             # 这需要在容器退出时通过事件监听或回调来实现
             # 目前先创建容器，后续可以添加事件监听
@@ -968,11 +1023,11 @@ class DockerService:
         try:
             # 使用 docker update 命令更新容器的重启策略
             # python-on-whales 可能没有直接的 update 方法，使用 subprocess 调用 docker update
-            result = subprocess.run(
+            subprocess.run(
                 ['docker', 'update', '--restart', restart_policy, container_id],
                 capture_output=True,
                 text=True,
-                check=True
+                check=True,
             )
             return True
         except DockerException as e:
@@ -994,7 +1049,7 @@ class DockerService:
         :return: 是否成功
         """
         try:
-            container = self.client.container.inspect(container_id)
+            self.client.container.inspect(container_id)
             network = self.client.network.inspect(network_name)
             network.connect(container_id)
             return True
@@ -1011,7 +1066,7 @@ class DockerService:
         :return: 是否成功
         """
         try:
-            container = self.client.container.inspect(container_id)
+            self.client.container.inspect(container_id)
             network = self.client.network.inspect(network_name)
             network.disconnect(container_id)
             return True
@@ -1056,7 +1111,7 @@ class DockerService:
             # 获取容器统计信息
             # python-on-whales的stats()可能返回生成器、列表或字典
             stats_result = self.client.container.stats(container_id)
-            
+
             # 处理不同的返回类型
             if isinstance(stats_result, dict):
                 # 直接是字典
@@ -1075,7 +1130,7 @@ class DockerService:
             else:
                 # 其他类型，直接使用
                 stats = stats_result
-            
+
             # python-on-whales返回的stats可能是字典或对象
             # 先尝试作为字典处理
             if isinstance(stats, dict):
@@ -1094,12 +1149,12 @@ class DockerService:
                         stats_dict = vars(stats) if hasattr(vars, '__call__') else {}
                     except:
                         stats_dict = {}
-            
+
             # 调试：记录原始数据结构（始终记录，直到问题解决）
             if not hasattr(self, '_stats_debug_count'):
                 self._stats_debug_count = 0
             self._stats_debug_count += 1
-            
+
             log.info(f'[容器统计调试] stats_result类型: {type(stats_result)}')
             log.info(f'[容器统计调试] stats类型: {type(stats)}')
             log.info(f'[容器统计调试] stats_dict类型: {type(stats_dict)}')
@@ -1109,28 +1164,31 @@ class DockerService:
                 log.info(f'[容器统计调试] stats_dict包含memory_stats: {"memory_stats" in stats_dict}')
                 log.info(f'[容器统计调试] stats_dict包含networks: {"networks" in stats_dict}')
                 log.info(f'[容器统计调试] stats_dict包含blkio_stats: {"blkio_stats" in stats_dict}')
-                
+
                 # 输出关键字段的详细信息
                 if 'cpu_stats' in stats_dict:
                     cpu_stats_val = stats_dict['cpu_stats']
                     log.info(f'[容器统计调试] cpu_stats类型: {type(cpu_stats_val)}, 值: {str(cpu_stats_val)[:500]}')
                 if 'memory_stats' in stats_dict:
                     memory_stats_val = stats_dict['memory_stats']
-                    log.info(f'[容器统计调试] memory_stats类型: {type(memory_stats_val)}, 值: {str(memory_stats_val)[:500]}')
+                    log.info(
+                        f'[容器统计调试] memory_stats类型: {type(memory_stats_val)}, 值: {str(memory_stats_val)[:500]}'
+                    )
                 if 'networks' in stats_dict:
                     networks_val = stats_dict['networks']
                     log.info(f'[容器统计调试] networks类型: {type(networks_val)}, 值: {str(networks_val)[:500]}')
-                
+
                 # 输出部分原始数据
                 import json
+
                 try:
                     stats_json = json.dumps(stats_dict, default=str, ensure_ascii=False)[:3000]
                     log.info(f'[容器统计调试] stats_dict前3000字符: {stats_json}')
                 except:
                     log.info(f'[容器统计调试] stats_dict字符串（前3000字符）: {str(stats_dict)[:3000]}')
             else:
-                log.info(f'[容器统计调试] stats_dict不是字典类型，无法获取键')
-            
+                log.info('[容器统计调试] stats_dict不是字典类型，无法获取键')
+
             # python-on-whales返回的数据格式与Docker API不同，直接使用其提供的字段
             # 检查是否是python-on-whales格式（包含cpu_percentage字段）
             if isinstance(stats_dict, dict) and 'cpu_percentage' in stats_dict:
@@ -1147,9 +1205,17 @@ class DockerService:
                 # Docker API原始格式：需要解析计算
                 # 解析CPU使用率
                 cpu_percent = 0.0
-                cpu_stats = stats_dict.get('cpu_stats', {}) if isinstance(stats_dict, dict) else getattr(stats, 'cpu_stats', None)
-                precpu_stats = stats_dict.get('precpu_stats', {}) if isinstance(stats_dict, dict) else getattr(stats, 'precpu_stats', None)
-                
+                cpu_stats = (
+                    stats_dict.get('cpu_stats', {})
+                    if isinstance(stats_dict, dict)
+                    else getattr(stats, 'cpu_stats', None)
+                )
+                precpu_stats = (
+                    stats_dict.get('precpu_stats', {})
+                    if isinstance(stats_dict, dict)
+                    else getattr(stats, 'precpu_stats', None)
+                )
+
                 if cpu_stats and precpu_stats:
                     if isinstance(cpu_stats, dict):
                         cpu_usage = cpu_stats.get('cpu_usage', {})
@@ -1161,18 +1227,24 @@ class DockerService:
                         cpu_usage = getattr(cpu_stats, 'cpu_usage', {})
                         precpu_usage = getattr(precpu_stats, 'cpu_usage', {})
                         cpu_delta = getattr(cpu_usage, 'total_usage', 0) - getattr(precpu_usage, 'total_usage', 0)
-                        system_delta = getattr(cpu_stats, 'system_cpu_usage', 0) - getattr(precpu_stats, 'system_cpu_usage', 0)
+                        system_delta = getattr(cpu_stats, 'system_cpu_usage', 0) - getattr(
+                            precpu_stats, 'system_cpu_usage', 0
+                        )
                         num_cpus = getattr(cpu_stats, 'online_cpus', 1)
-                    
+
                     if system_delta > 0 and num_cpus > 0:
                         cpu_percent = (cpu_delta / system_delta) * num_cpus * 100.0
-                
+
                 # 解析内存使用
                 memory_usage = 0
                 memory_limit = 0
                 memory_percent = 0.0
-                memory_stats = stats_dict.get('memory_stats', {}) if isinstance(stats_dict, dict) else getattr(stats, 'memory_stats', None)
-                
+                memory_stats = (
+                    stats_dict.get('memory_stats', {})
+                    if isinstance(stats_dict, dict)
+                    else getattr(stats, 'memory_stats', None)
+                )
+
                 if memory_stats:
                     if isinstance(memory_stats, dict):
                         memory_usage = memory_stats.get('usage', 0) or memory_stats.get('rss', 0) or 0
@@ -1182,38 +1254,45 @@ class DockerService:
                             memory_limit = memory_stats['stats'].get('hierarchical_memory_limit', 0)
                     else:
                         memory_usage = getattr(memory_stats, 'usage', None) or getattr(memory_stats, 'rss', 0) or 0
-                        memory_limit = getattr(memory_stats, 'limit', None) or getattr(memory_stats, 'max_usage', 0) or 0
-                    
+                        memory_limit = (
+                            getattr(memory_stats, 'limit', None) or getattr(memory_stats, 'max_usage', 0) or 0
+                        )
+
                     if memory_limit > 0:
                         memory_percent = (memory_usage / memory_limit) * 100.0
-                
+
                 # 解析网络统计
                 network_rx = 0
                 network_tx = 0
-                networks = stats_dict.get('networks', {}) if isinstance(stats_dict, dict) else getattr(stats, 'networks', None)
-                
-                if networks:
-                    if isinstance(networks, dict):
-                        for network_name, network_data in networks.items():
-                            if isinstance(network_data, dict):
-                                network_rx += network_data.get('rx_bytes', 0)
-                                network_tx += network_data.get('tx_bytes', 0)
-                            else:
-                                network_rx += getattr(network_data, 'rx_bytes', 0)
-                                network_tx += getattr(network_data, 'tx_bytes', 0)
-                
+                networks = (
+                    stats_dict.get('networks', {}) if isinstance(stats_dict, dict) else getattr(stats, 'networks', None)
+                )
+
+                if networks and isinstance(networks, dict):
+                    for network_data in networks.values():
+                        if isinstance(network_data, dict):
+                            network_rx += network_data.get('rx_bytes', 0)
+                            network_tx += network_data.get('tx_bytes', 0)
+                        else:
+                            network_rx += getattr(network_data, 'rx_bytes', 0)
+                            network_tx += getattr(network_data, 'tx_bytes', 0)
+
                 # 解析I/O统计
                 io_read = 0
                 io_write = 0
-                blkio_stats = stats_dict.get('blkio_stats', {}) if isinstance(stats_dict, dict) else getattr(stats, 'blkio_stats', None)
-                
+                blkio_stats = (
+                    stats_dict.get('blkio_stats', {})
+                    if isinstance(stats_dict, dict)
+                    else getattr(stats, 'blkio_stats', None)
+                )
+
                 if blkio_stats:
                     io_service_bytes = None
                     if isinstance(blkio_stats, dict):
                         io_service_bytes = blkio_stats.get('io_service_bytes_recursive', [])
                     else:
                         io_service_bytes = getattr(blkio_stats, 'io_service_bytes_recursive', [])
-                    
+
                     if io_service_bytes:
                         for entry in io_service_bytes:
                             if isinstance(entry, dict):
@@ -1222,12 +1301,12 @@ class DockerService:
                             else:
                                 op = getattr(entry, 'op', '')
                                 value = getattr(entry, 'value', 0)
-                            
+
                             if op == 'Read':
                                 io_read += value
                             elif op == 'Write':
                                 io_write += value
-            
+
             # 获取时间戳
             timestamp = None
             if isinstance(stats_dict, dict):
@@ -1238,7 +1317,7 @@ class DockerService:
                 read_time = getattr(stats, 'read', None)
                 if read_time:
                     timestamp = read_time.isoformat() if hasattr(read_time, 'isoformat') else str(read_time)
-            
+
             result = {
                 'cpu_percent': round(cpu_percent, 2),
                 'memory_usage': memory_usage,
@@ -1250,10 +1329,12 @@ class DockerService:
                 'io_write': io_write,
                 'timestamp': timestamp,
             }
-            
+
             # 调试：记录解析后的结果（始终记录，直到问题解决）
-            log.info(f'[容器统计调试] 解析后的结果: cpu_percent={result["cpu_percent"]}, memory_usage={result["memory_usage"]}, memory_limit={result["memory_limit"]}, memory_percent={result["memory_percent"]}, network_rx={result["network_rx"]}, network_tx={result["network_tx"]}, io_read={result["io_read"]}, io_write={result["io_write"]}')
-            
+            log.info(
+                f'[容器统计调试] 解析后的结果: cpu_percent={result["cpu_percent"]}, memory_usage={result["memory_usage"]}, memory_limit={result["memory_limit"]}, memory_percent={result["memory_percent"]}, network_rx={result["network_rx"]}, network_tx={result["network_tx"]}, io_read={result["io_read"]}, io_write={result["io_write"]}'
+            )
+
             return result
         except DockerException as e:
             log.error(f'获取容器统计信息失败: {e}')
@@ -1277,10 +1358,9 @@ class DockerService:
             for image in images:
                 # 提取镜像ID，去掉 sha256: 前缀，只保留前12个字符
                 image_id = image.id
-                if image_id.startswith('sha256:'):
-                    image_id = image_id[7:]
+                image_id = image_id.removeprefix('sha256:')
                 image_id = image_id[:12] if len(image_id) > 12 else image_id
-                
+
                 result.append({
                     'id': image_id,
                     'tags': image.repo_tags,
@@ -1375,18 +1455,18 @@ class DockerService:
         """
         try:
             import tempfile
-            import os
-            
+
             # 创建临时目录保存构建上下文
             with tempfile.TemporaryDirectory() as temp_dir:
                 # 解压 tar 文件到临时目录
                 import tarfile
+
                 from io import BytesIO
-                
+
                 tar_stream = BytesIO(tar_data)
                 with tarfile.open(fileobj=tar_stream, mode='r:*') as tar:
                     tar.extractall(path=temp_dir)
-                
+
                 # 使用临时目录作为构建上下文
                 built_image = self.client.build(
                     path=temp_dir,
@@ -1394,7 +1474,7 @@ class DockerService:
                     file=dockerfile,
                     build_args=build_args,
                 )
-                
+
                 return {
                     'id': built_image.id,
                     'tags': built_image.repo_tags,
@@ -1414,8 +1494,6 @@ class DockerService:
         :return: tar 文件的字节数据
         """
         try:
-            from io import BytesIO
-            
             # 如果传入的是镜像 ID，尝试查找对应的镜像以获取 tag
             image_identifier = image_id
             try:
@@ -1423,9 +1501,7 @@ class DockerService:
                 images = self.client.image.list(all=True)
                 for img in images:
                     # 检查是否是匹配的镜像 ID（前12位或完整 ID）
-                    if (img.id.startswith(image_id) or 
-                        image_id.startswith(img.id[:12]) or
-                        img.id[:12] == image_id):
+                    if img.id.startswith(image_id) or image_id.startswith(img.id[:12]) or img.id[:12] == image_id:
                         # 如果镜像有 tag，优先使用 tag 导出（这样可以保留 tag 信息）
                         if img.repo_tags and len(img.repo_tags) > 0:
                             # 使用第一个 tag
@@ -1435,14 +1511,14 @@ class DockerService:
             except Exception as e:
                 log.warning(f'查找镜像 tag 失败，使用原始 ID: {e}')
                 # 如果查找失败，继续使用原始 image_id
-            
+
             # 使用 subprocess 调用 docker save 命令导出镜像
             result = subprocess.run(
                 ['docker', 'save', image_identifier],
                 capture_output=True,
                 check=True,
             )
-            
+
             return result.stdout
         except subprocess.CalledProcessError as e:
             log.error(f'导出镜像失败: {e.stderr.decode() if e.stderr else str(e)}')
@@ -1459,14 +1535,14 @@ class DockerService:
         :return: 导入的镜像信息
         """
         try:
-            import tempfile
             import os
-            
+            import tempfile
+
             # 创建临时文件保存 tar 数据
             with tempfile.NamedTemporaryFile(delete=False, suffix='.tar') as tmp_file:
                 tmp_file.write(tar_data)
                 tmp_path = tmp_file.name
-            
+
             try:
                 # 使用 subprocess 调用 docker load 命令导入镜像
                 result = subprocess.run(
@@ -1475,13 +1551,13 @@ class DockerService:
                     text=True,
                     check=True,
                 )
-                
+
                 # 解析输出获取镜像信息
                 # docker load 的输出格式类似: "Loaded image: busybox:latest" 或 "Loaded image ID: sha256:..."
                 output_lines = result.stdout.strip().split('\n')
                 loaded_images = []
                 loaded_image_ids = []
-                
+
                 for line in output_lines:
                     if 'Loaded image:' in line:
                         # 提取镜像名称（可能包含 tag）
@@ -1491,15 +1567,15 @@ class DockerService:
                         # 提取镜像 ID
                         image_id = line.split('Loaded image ID:')[1].strip()
                         loaded_image_ids.append(image_id)
-                
+
                 log.info(f'导入镜像输出: {result.stdout}')
                 log.info(f'解析到的镜像名称: {loaded_images}')
                 log.info(f'解析到的镜像ID: {loaded_image_ids}')
-                
+
                 # 获取所有镜像列表，找到刚导入的镜像
                 images = self.list_images(all=True)
                 log.info(f'当前镜像列表数量: {len(images)}')
-                
+
                 # 方法1: 通过 tag 匹配
                 if loaded_images:
                     for img in images:
@@ -1511,7 +1587,7 @@ class DockerService:
                                         'id': img['id'],
                                         'tags': img['tags'],
                                     }
-                
+
                 # 方法2: 通过镜像 ID 匹配（如果导出的镜像没有 tag）
                 if loaded_image_ids:
                     for img in images:
@@ -1521,22 +1597,19 @@ class DockerService:
                             # 移除 sha256: 前缀（如果有）
                             loaded_id_clean = loaded_id.replace('sha256:', '')
                             # 比较完整 ID 或前12位
-                            if (loaded_id_clean.startswith(img_id_short) or 
-                                img_id_short.startswith(loaded_id_clean[:12])):
+                            if loaded_id_clean.startswith(img_id_short) or img_id_short.startswith(
+                                loaded_id_clean[:12]
+                            ):
                                 log.info(f'通过 ID 找到镜像: {img["id"]}, tags: {img.get("tags", [])}')
                                 return {
                                     'id': img['id'],
                                     'tags': img.get('tags', []),
                                 }
-                
+
                 # 方法3: 如果导入后立即查询，可能是最新的镜像（按创建时间排序）
                 if images:
                     # 按创建时间排序，最新的在前
-                    sorted_images = sorted(
-                        images,
-                        key=lambda x: x.get('created', '') or '',
-                        reverse=True
-                    )
+                    sorted_images = sorted(images, key=lambda x: x.get('created', '') or '', reverse=True)
                     # 返回最新的镜像（假设是刚导入的）
                     latest_image = sorted_images[0]
                     log.info(f'返回最新镜像: {latest_image["id"]}, tags: {latest_image.get("tags", [])}')
@@ -1544,19 +1617,19 @@ class DockerService:
                         'id': latest_image['id'],
                         'tags': latest_image.get('tags', []),
                     }
-                
+
                 # 如果都没有找到，返回解析到的镜像名称
                 log.warning(f'未找到匹配的镜像，返回解析到的镜像名称: {loaded_images}')
                 return {
                     'id': '',
-                    'tags': loaded_images if loaded_images else [],
+                    'tags': loaded_images or [],
                 }
             finally:
                 # 删除临时文件
                 if os.path.exists(tmp_path):
                     os.unlink(tmp_path)
         except subprocess.CalledProcessError as e:
-            error_msg = e.stderr if e.stderr else str(e)
+            error_msg = e.stderr or str(e)
             log.error(f'导入镜像失败: {error_msg}')
             raise DockerException(f'导入镜像失败: {error_msg}')
         except Exception as e:
@@ -1572,10 +1645,10 @@ class DockerService:
         """
         try:
             import json
-            
+
             # 使用 inspect 获取镜像详细信息
             image = self.client.image.inspect(image_id)
-            
+
             # 转换为字典格式
             image_dict = None
             if hasattr(image, '__dict__'):
@@ -1583,7 +1656,7 @@ class DockerService:
                     image_dict = image.__dict__
                 except Exception:
                     pass
-            
+
             if image_dict is None and isinstance(image, dict):
                 image_dict = image
             elif image_dict is None:
@@ -1591,7 +1664,7 @@ class DockerService:
                     image_dict = json.loads(json.dumps(image, default=str))
                 except Exception:
                     image_dict = {}
-            
+
             # 获取 Config 信息
             config = image_dict.get('Config') or image_dict.get('config') or {}
             if not config and hasattr(image, 'config'):
@@ -1599,17 +1672,17 @@ class DockerService:
                     config = image.config.__dict__ if hasattr(image.config, '__dict__') else {}
                 except Exception:
                     pass
-            
+
             # 提取 CMD
             cmd = config.get('Cmd') or config.get('cmd') or []
             if isinstance(cmd, str):
                 cmd = [cmd]
-            
+
             # 提取 ENTRYPOINT
             entrypoint = config.get('Entrypoint') or config.get('entrypoint') or []
             if isinstance(entrypoint, str):
                 entrypoint = [entrypoint]
-            
+
             # 提取 EXPOSE 端口
             expose = config.get('ExposedPorts') or config.get('exposed_ports') or {}
             expose_list = []
@@ -1617,7 +1690,7 @@ class DockerService:
                 expose_list = list(expose.keys())
             elif isinstance(expose, list):
                 expose_list = expose
-            
+
             # 提取 VOLUME
             volumes = config.get('Volumes') or config.get('volumes') or {}
             volume_list = []
@@ -1625,7 +1698,7 @@ class DockerService:
                 volume_list = list(volumes.keys())
             elif isinstance(volumes, list):
                 volume_list = volumes
-            
+
             # 提取 ENV 环境变量
             env_list = config.get('Env') or config.get('env') or []
             env_dict = {}
@@ -1634,7 +1707,7 @@ class DockerService:
                     if isinstance(env_item, str) and '=' in env_item:
                         key, value = env_item.split('=', 1)
                         env_dict[key] = value
-            
+
             # 获取镜像历史（layers）
             # 需要先获取镜像对象，然后在镜像对象上调用 history()
             history = None
@@ -1644,25 +1717,23 @@ class DockerService:
                 image_obj = None
                 for img in images:
                     # 检查镜像 ID 是否匹配
-                    if (img.id.startswith(image_id) or 
-                        image_id.startswith(img.id[:12]) or
-                        img.id[:12] == image_id):
+                    if img.id.startswith(image_id) or image_id.startswith(img.id[:12]) or img.id[:12] == image_id:
                         image_obj = img
                         break
-                
+
                 if image_obj:
                     # 在镜像对象上调用 history()
                     history = image_obj.history()
             except Exception as e:
                 log.warning(f'获取镜像历史失败: {e}')
                 history = None
-            
+
             layers = []
             if history:
                 # 历史记录是倒序的（最新的在前），我们需要反转
                 history_list = list(history)
                 history_list.reverse()
-                
+
                 for index, layer in enumerate(history_list):
                     layer_dict = None
                     if hasattr(layer, '__dict__'):
@@ -1670,7 +1741,7 @@ class DockerService:
                             layer_dict = layer.__dict__
                         except Exception:
                             pass
-                    
+
                     if layer_dict is None and isinstance(layer, dict):
                         layer_dict = layer
                     elif layer_dict is None:
@@ -1678,7 +1749,7 @@ class DockerService:
                             layer_dict = json.loads(json.dumps(layer, default=str))
                         except Exception:
                             layer_dict = {}
-                    
+
                     # 提取层大小
                     size = layer_dict.get('Size') or layer_dict.get('size') or 0
                     if not isinstance(size, int):
@@ -1686,51 +1757,50 @@ class DockerService:
                             size = int(size)
                         except (ValueError, TypeError):
                             size = 0
-                    
+
                     # 提取层命令 - 获取完整的 CreatedBy 字段
                     created_by = layer_dict.get('CreatedBy') or layer_dict.get('created_by') or ''
                     if not isinstance(created_by, str):
                         created_by = str(created_by) if created_by else ''
-                    
+
                     # 如果没有 CreatedBy，尝试从其他字段获取
                     if not created_by:
                         # 尝试从 Comment 字段获取
                         comment = layer_dict.get('Comment') or layer_dict.get('comment') or ''
                         if comment:
                             created_by = comment
-                    
+
                     # 清理和格式化层命令
                     if created_by:
                         # 移除多余的 RUN 前缀（某些情况下会有重复的 RUN）
                         created_by = created_by.strip()
                         # 保留原始格式，不做过多处理
-                        pass
                     else:
                         # 如果完全没有命令信息，标记为未知
                         created_by = '<missing>'
-                    
+
                     layers.append({
                         'order': index,
                         'size': size,
                         'layer': created_by,
                     })
-            
+
             # 补充元数据层（从 Config 中提取的 EXPOSE, VOLUME, CMD, ENTRYPOINT）
             # 这些信息在 history 中可能不会单独显示，需要手动添加
             # 注意：这些层的大小都是 0，但需要显示在正确的位置
-            
+
             # 如果最后几层是元数据层（CMD, ENTRYPOINT, EXPOSE, VOLUME），确保它们被包含
             # 实际上，这些信息应该已经在 history 中了，但可能需要确保格式正确
-            
+
             # 获取镜像基本信息
             image_id_short = image_dict.get('Id') or image_dict.get('id') or image_id
             if isinstance(image_id_short, str) and len(image_id_short) > 12:
                 image_id_short = image_id_short[:12]
-            
+
             repo_tags = image_dict.get('RepoTags') or image_dict.get('repo_tags') or []
             if not isinstance(repo_tags, list):
                 repo_tags = []
-            
+
             return {
                 'id': image_id_short,
                 'tags': repo_tags,
@@ -1765,7 +1835,7 @@ class DockerService:
                 text=True,
                 check=False,
             )
-            
+
             if result.returncode != 0:
                 # 如果docker compose失败，尝试使用docker-compose（旧版本）
                 result = subprocess.run(
@@ -1774,36 +1844,38 @@ class DockerService:
                     text=True,
                     check=False,
                 )
-            
+
             if result.returncode != 0:
                 log.error(f'执行docker compose ls失败: {result.stderr}')
                 raise DockerException(f'执行docker compose ls失败: {result.stderr}')
-            
+
             # 解析输出
             lines = result.stdout.strip().split('\n')
             if len(lines) < 2:
                 # 没有堆栈或只有表头
                 return []
-            
+
             # 跳过表头行，解析数据行
             stacks = []
             for line in lines[1:]:
                 if not line.strip():
                     continue
-                
+
                 # 解析格式: NAME STATUS CONFIG FILES
                 # Docker Compose输出通常是固定宽度的表格，使用多个空格分隔
                 # 使用正则表达式分割多个连续空格
                 parts = re.split(r'\s{2,}', line.strip())
-                
+
                 if len(parts) >= 2:
                     name = parts[0]
                     status = parts[1]
                     # config_files是剩余部分（可能包含逗号分隔的多个文件）
                     config_files_str = ' '.join(parts[2:]) if len(parts) > 2 else ''
                     # 处理配置文件路径，可能用逗号分隔
-                    config_files = [f.strip() for f in config_files_str.split(',') if f.strip()] if config_files_str else []
-                    
+                    config_files = (
+                        [f.strip() for f in config_files_str.split(',') if f.strip()] if config_files_str else []
+                    )
+
                     # 获取堆栈的创建时间和更新时间（通过检查堆栈中的容器）
                     created = None
                     updated = None
@@ -1818,20 +1890,20 @@ class DockerService:
                             first_container = containers[0]
                             try:
                                 inspected = self.client.container.inspect(first_container.id)
-                                
+
                                 # 获取创建时间
                                 container_created = None
                                 if hasattr(inspected, 'created'):
                                     container_created = inspected.created
                                 elif isinstance(inspected, dict):
                                     container_created = inspected.get('Created') or inspected.get('created')
-                                
+
                                 if container_created:
                                     if hasattr(container_created, 'isoformat'):
                                         created = container_created.isoformat()
                                     elif isinstance(container_created, str):
                                         created = container_created
-                                
+
                                 # 获取更新时间（使用容器状态中的 StartedAt 或 State.StartedAt）
                                 container_updated = None
                                 if hasattr(inspected, 'State') and hasattr(inspected.State, 'StartedAt'):
@@ -1840,7 +1912,7 @@ class DockerService:
                                     state = inspected.get('State') or inspected.get('state')
                                     if state:
                                         container_updated = state.get('StartedAt') or state.get('started_at')
-                                
+
                                 if container_updated:
                                     if hasattr(container_updated, 'isoformat'):
                                         updated = container_updated.isoformat()
@@ -1849,12 +1921,12 @@ class DockerService:
                                     # 如果 updated 为空，使用 created 作为 fallback
                                     if not updated and created:
                                         updated = created
-                                        
+
                             except Exception as e:
                                 log.debug(f'获取堆栈 {name} 的创建时间和更新时间失败: {e}')
                     except Exception as e:
                         log.debug(f'获取堆栈 {name} 的容器列表失败: {e}')
-                    
+
                     # 获取堆栈中的容器名称列表
                     container_names = []
                     try:
@@ -1865,7 +1937,7 @@ class DockerService:
                         container_names = [c.name for c in stack_containers if c.name]
                     except Exception as e:
                         log.debug(f'获取堆栈 {name} 的容器名称失败: {e}')
-                    
+
                     stacks.append({
                         'name': name,
                         'status': status,
@@ -1874,7 +1946,7 @@ class DockerService:
                         'created': created,
                         'updated': updated,
                     })
-            
+
             return stacks
         except subprocess.SubprocessError as e:
             log.error(f'执行docker compose ls命令失败: {e}')
@@ -1987,13 +2059,13 @@ class DockerService:
                 ipv6_subnet = None
                 ipv6_gateway = None
                 ownership = 'public'  # 默认值
-                
+
                 # 获取连接到该网络的容器列表
                 containers = []
                 try:
                     # 使用 inspect 获取网络详细信息
                     inspected = self.client.network.inspect(network.id)
-                    
+
                     # 获取 containers
                     network_containers = None
                     if hasattr(inspected, 'containers') and inspected.containers:
@@ -2002,7 +2074,7 @@ class DockerService:
                         network_containers = inspected.Containers
                     elif isinstance(inspected, dict):
                         network_containers = inspected.get('Containers') or inspected.get('containers')
-                    
+
                     if network_containers:
                         if isinstance(network_containers, dict):
                             # 如果是字典，键是容器ID，值是容器信息
@@ -2032,15 +2104,14 @@ class DockerService:
                                 if isinstance(container, dict):
                                     container_name = container.get('Name') or container.get('name')
                                     if container_name:
-                                        if container_name.startswith('/'):
-                                            container_name = container_name[1:]
+                                        container_name = container_name.removeprefix('/')
                                         containers.append(container_name)
                                 elif hasattr(container, 'name'):
                                     container_name = container.name
                                     if container_name and container_name.startswith('/'):
                                         container_name = container_name[1:]
                                     containers.append(container_name)
-                    
+
                     # 获取 labels
                     labels = None
                     if hasattr(inspected, 'labels') and inspected.labels:
@@ -2049,51 +2120,59 @@ class DockerService:
                         labels = inspected.Labels
                     elif isinstance(inspected, dict):
                         labels = inspected.get('Labels') or inspected.get('labels')
-                    
+
                     if labels and isinstance(labels, dict):
-                        stack = labels.get('com.docker.compose.project') or labels.get('com.docker.compose.project.working_dir')
+                        stack = labels.get('com.docker.compose.project') or labels.get(
+                            'com.docker.compose.project.working_dir'
+                        )
                         if stack and '/' in stack:
                             stack = stack.split('/')[-1]
                         # 从 labels 中获取 ownership（如果有的话）
                         ownership_label = labels.get('com.docker.compose.project.ownership') or labels.get('ownership')
                         if ownership_label:
                             ownership = ownership_label
-                    
+
                     # 获取 attachable 属性
                     if hasattr(inspected, 'attachable'):
                         attachable = inspected.attachable
                     elif isinstance(inspected, dict):
                         attachable = inspected.get('Attachable') or inspected.get('attachable') or False
-                    
+
                     # 获取 IPAM 配置
                     ipam = None
                     if hasattr(inspected, 'ipam') and inspected.ipam:
                         ipam = inspected.ipam
                     elif isinstance(inspected, dict):
                         ipam = inspected.get('IPAM') or inspected.get('ipam')
-                    
+
                     if ipam:
                         # 获取 IPAM driver
                         if hasattr(ipam, 'driver') and ipam.driver:
                             ipam_driver = ipam.driver
                         elif isinstance(ipam, dict):
                             ipam_driver = ipam.get('Driver') or ipam.get('driver') or 'default'
-                        
+
                         # 获取 IPAM config
                         ipam_config = None
                         if hasattr(ipam, 'config') and ipam.config:
                             ipam_config = ipam.config
                         elif isinstance(ipam, dict):
                             ipam_config = ipam.get('Config') or ipam.get('config')
-                        
+
                         if ipam_config:
                             # 处理 IPv4 和 IPv6 配置
                             for config in ipam_config if isinstance(ipam_config, list) else [ipam_config]:
-                                config_dict = config if isinstance(config, dict) else config.__dict__ if hasattr(config, '__dict__') else {}
-                                
+                                config_dict = (
+                                    config
+                                    if isinstance(config, dict)
+                                    else config.__dict__
+                                    if hasattr(config, '__dict__')
+                                    else {}
+                                )
+
                                 subnet = config_dict.get('Subnet') or config_dict.get('subnet') or ''
                                 gateway = config_dict.get('Gateway') or config_dict.get('gateway') or ''
-                                
+
                                 # 判断是 IPv4 还是 IPv6
                                 if ':' in subnet or '::' in subnet:
                                     # IPv6
@@ -2109,18 +2188,17 @@ class DockerService:
                                         ipv4_gateway = gateway
                 except Exception as e:
                     log.debug(f'获取网络 {network.name} 的详细信息失败: {e}')
-                
+
                 # 如果没有从 inspect 获取到 subnet，使用原来的方式
-                if not ipv4_subnet and not ipv6_subnet:
-                    if hasattr(network, 'ipam') and network.ipam:
-                        if hasattr(network.ipam, 'config') and network.ipam.config:
-                            if len(network.ipam.config) > 0 and hasattr(network.ipam.config[0], 'subnet'):
-                                subnet = network.ipam.config[0].subnet
-                                if ':' in subnet or '::' in subnet:
-                                    ipv6_subnet = subnet
-                                else:
-                                    ipv4_subnet = subnet
-                
+                if not ipv4_subnet and not ipv6_subnet and hasattr(network, 'ipam') and network.ipam:
+                    if hasattr(network.ipam, 'config') and network.ipam.config:
+                        if len(network.ipam.config) > 0 and hasattr(network.ipam.config[0], 'subnet'):
+                            subnet = network.ipam.config[0].subnet
+                            if ':' in subnet or '::' in subnet:
+                                ipv6_subnet = subnet
+                            else:
+                                ipv4_subnet = subnet
+
                 result.append({
                     'id': network.id[:12] if len(network.id) > 12 else network.id,
                     'name': network.name,
@@ -2168,7 +2246,7 @@ class DockerService:
                 create_kwargs['subnet'] = subnet
             if gateway:
                 create_kwargs['gateway'] = gateway
-            
+
             network = self.client.network.create(**create_kwargs)
             return {
                 'id': network.id[:12],
@@ -2207,7 +2285,7 @@ class DockerService:
                 mountpoint = volume.mountpoint if hasattr(volume, 'mountpoint') else ''
                 # 将 PosixPath 转换为字符串
                 mountpoint = str(mountpoint) if mountpoint else ''
-                
+
                 # 获取卷的详细信息（包含 labels 和 options）
                 stack = None
                 volume_options = {}
@@ -2215,7 +2293,7 @@ class DockerService:
                     # 使用 inspect 获取卷的详细信息
                     try:
                         inspected = self.client.volume.inspect(volume.name)
-                        
+
                         # 获取 labels
                         labels = None
                         if hasattr(inspected, 'labels') and inspected.labels:
@@ -2224,12 +2302,14 @@ class DockerService:
                             labels = inspected.Labels
                         elif isinstance(inspected, dict):
                             labels = inspected.get('Labels') or inspected.get('labels')
-                        
+
                         if labels and isinstance(labels, dict):
-                            stack = labels.get('com.docker.compose.project') or labels.get('com.docker.compose.project.working_dir')
+                            stack = labels.get('com.docker.compose.project') or labels.get(
+                                'com.docker.compose.project.working_dir'
+                            )
                             if stack and '/' in stack:
                                 stack = stack.split('/')[-1]
-                        
+
                         # 获取 options
                         if hasattr(inspected, 'options') and inspected.options:
                             if isinstance(inspected.options, dict):
@@ -2244,7 +2324,7 @@ class DockerService:
                 except Exception as e:
                     log.debug(f'获取卷 {volume.name} 的详细信息失败: {e}')
                     stack = None
-                
+
                 # 获取使用该卷的容器名称列表
                 containers_using_volume = []
                 try:
@@ -2253,7 +2333,7 @@ class DockerService:
                         try:
                             inspected = self.client.container.inspect(container.id)
                             inspected_dict = None
-                            
+
                             # 转换为字典
                             if hasattr(inspected, '__dict__'):
                                 try:
@@ -2265,10 +2345,11 @@ class DockerService:
                             elif inspected_dict is None:
                                 try:
                                     import json
+
                                     inspected_dict = json.loads(json.dumps(inspected, default=str))
                                 except Exception:
                                     pass
-                            
+
                             # 检查容器的挂载点
                             # 首先尝试使用 container.mounts 属性（python-on-whales 的方式）
                             try:
@@ -2281,7 +2362,7 @@ class DockerService:
                                                 break
                             except Exception:
                                 pass
-                            
+
                             # 如果上面没有找到，尝试从 inspected_dict 中查找
                             if volume.name not in containers_using_volume and inspected_dict:
                                 mounts = inspected_dict.get('Mounts') or inspected_dict.get('mounts')
@@ -2299,7 +2380,7 @@ class DockerService:
                                                     parts = source.split('/volumes/')
                                                     if len(parts) > 1:
                                                         mount_name = parts[1].split('/')[0]
-                                            
+
                                             if mount_type == 'volume' and mount_name == volume.name:
                                                 containers_using_volume.append(container.name)
                                                 break
@@ -2308,12 +2389,14 @@ class DockerService:
                             continue
                 except Exception as e:
                     log.debug(f'获取使用卷 {volume.name} 的容器列表失败: {e}')
-                
+
                 result.append({
                     'name': volume.name,
                     'driver': volume.driver if hasattr(volume, 'driver') else 'local',
                     'mountpoint': mountpoint,
-                    'created': volume.created_at.isoformat() if hasattr(volume, 'created_at') and volume.created_at else None,
+                    'created': volume.created_at.isoformat()
+                    if hasattr(volume, 'created_at') and volume.created_at
+                    else None,
                     'stack': stack,
                     'options': volume_options,
                     'containers': containers_using_volume,
@@ -2323,7 +2406,9 @@ class DockerService:
             log.error(f'获取卷列表失败: {e}')
             raise
 
-    def create_volume(self, name: str, driver: str = 'local', driver_opts: dict[str, str] | None = None) -> dict[str, Any]:
+    def create_volume(
+        self, name: str, driver: str = 'local', driver_opts: dict[str, str] | None = None
+    ) -> dict[str, Any]:
         """
         创建卷
 
@@ -2333,11 +2418,7 @@ class DockerService:
         :return: 创建的卷信息
         """
         try:
-            volume = self.client.volume.create(
-                volume_name=name,
-                driver=driver,
-                options=driver_opts or {}
-            )
+            volume = self.client.volume.create(volume_name=name, driver=driver, options=driver_opts or {})
             return {
                 'name': volume.name,
                 'driver': volume.driver,
@@ -2356,7 +2437,7 @@ class DockerService:
         try:
             # 获取卷的详细信息
             volume = self.client.volume.inspect(volume_name)
-            
+
             # 获取卷的选项（driver options）
             volume_options = {}
             if hasattr(volume, 'options') and volume.options:
@@ -2381,7 +2462,7 @@ class DockerService:
                 volume_options = volume.get('Options') or volume.get('options') or {}
                 if not isinstance(volume_options, dict):
                     volume_options = {}
-            
+
             # 获取所有容器，查找使用该卷的容器
             containers_using_volume = []
             try:
@@ -2390,7 +2471,7 @@ class DockerService:
                     try:
                         inspected = self.client.container.inspect(container.id)
                         inspected_dict = None
-                        
+
                         # 转换为字典
                         if hasattr(inspected, '__dict__'):
                             try:
@@ -2402,10 +2483,11 @@ class DockerService:
                         elif inspected_dict is None:
                             try:
                                 import json
+
                                 inspected_dict = json.loads(json.dumps(inspected, default=str))
                             except Exception:
                                 pass
-                        
+
                         # 检查容器的挂载点
                         if inspected_dict:
                             mounts = inspected_dict.get('Mounts') or inspected_dict.get('mounts')
@@ -2414,13 +2496,23 @@ class DockerService:
                                     if isinstance(mount, dict):
                                         # 检查是否是卷挂载
                                         mount_type = mount.get('Type') or mount.get('type') or ''
-                                        source = mount.get('Source') or mount.get('source') or mount.get('Name') or mount.get('name') or ''
-                                        
+                                        source = (
+                                            mount.get('Source')
+                                            or mount.get('source')
+                                            or mount.get('Name')
+                                            or mount.get('name')
+                                            or ''
+                                        )
+
                                         # 如果是卷类型，且卷名称匹配
                                         if mount_type == 'volume' and source == volume_name:
                                             destination = mount.get('Destination') or mount.get('destination') or ''
-                                            read_only = mount.get('ReadOnly') or mount.get('read_only') or mount.get('RW') is False
-                                            
+                                            read_only = (
+                                                mount.get('ReadOnly')
+                                                or mount.get('read_only')
+                                                or mount.get('RW') is False
+                                            )
+
                                             containers_using_volume.append({
                                                 'name': container.name,
                                                 'mounted_at': destination,
@@ -2432,7 +2524,7 @@ class DockerService:
                         continue
             except Exception as e:
                 log.warning(f'获取使用卷 {volume_name} 的容器列表失败: {e}')
-            
+
             return {
                 'options': volume_options,
                 'containers': containers_using_volume,
@@ -2466,12 +2558,7 @@ class DockerService:
         try:
             info = self.client.info()
             # 尝试多种方式获取 CPU 数量（Docker API 可能使用 NCPU、n_cpu 或 cpus）
-            cpus = (
-                getattr(info, 'NCPU', None) or
-                getattr(info, 'n_cpu', None) or
-                getattr(info, 'cpus', None) or
-                0
-            )
+            cpus = getattr(info, 'NCPU', None) or getattr(info, 'n_cpu', None) or getattr(info, 'cpus', None) or 0
             # 如果获取到的是 None，转换为 0
             if cpus is None:
                 cpus = 0
@@ -2479,11 +2566,7 @@ class DockerService:
             if isinstance(info, dict):
                 mem_total = info.get('MemTotal') or info.get('mem_total') or 0
             else:
-                mem_total = (
-                    getattr(info, 'MemTotal', None) or
-                    getattr(info, 'mem_total', None) or
-                    0
-                )
+                mem_total = getattr(info, 'MemTotal', None) or getattr(info, 'mem_total', None) or 0
             if mem_total is None:
                 mem_total = 0
 
@@ -2521,15 +2604,15 @@ class DockerService:
                 text=True,
                 check=True,
             )
-            
+
             # 解析文本输出
             lines = result.stdout.strip().split('\n')
-            
+
             images_size = 0
             containers_size = 0
             volumes_size = 0
             build_cache_size = 0
-            
+
             # 跳过表头，解析数据行
             # 格式示例:
             # TYPE            TOTAL     ACTIVE    SIZE      RECLAIMABLE
@@ -2540,16 +2623,16 @@ class DockerService:
             for line in lines[1:]:  # 跳过表头
                 if not line.strip():
                     continue
-                
+
                 # 使用正则表达式分割多个空格
                 parts = re.split(r'\s{2,}', line.strip())
                 if len(parts) >= 4:
                     resource_type = parts[0].lower()
                     size_str = parts[3]  # SIZE 列
-                    
+
                     # 解析大小字符串（如 "1.2GB", "500MB"）
                     size_bytes = self._parse_size(size_str)
-                    
+
                     if 'image' in resource_type:
                         images_size = size_bytes
                     elif 'container' in resource_type:
@@ -2558,7 +2641,7 @@ class DockerService:
                         volumes_size = size_bytes
                     elif 'build cache' in resource_type or 'cache' in resource_type:
                         build_cache_size = size_bytes
-            
+
             return {
                 'images_size': images_size,
                 'containers_size': containers_size,
@@ -2584,9 +2667,7 @@ class DockerService:
         :return: 连接状态
         """
         try:
-            result = await db.execute(
-                select(DockerConfig).where(DockerConfig.key == 'connected')
-            )
+            result = await db.execute(select(DockerConfig).where(DockerConfig.key == 'connected'))
             config = result.scalar_one_or_none()
             if config:
                 return config.value.lower() == 'true'
@@ -2606,22 +2687,17 @@ class DockerService:
         :return: 是否成功
         """
         try:
-            result = await db.execute(
-                select(DockerConfig).where(DockerConfig.key == 'connected')
-            )
+            result = await db.execute(select(DockerConfig).where(DockerConfig.key == 'connected'))
             config = result.scalar_one_or_none()
-            
+
             if config:
                 # 更新现有配置
                 config.value = 'true' if connected else 'false'
             else:
                 # 创建新配置
-                config = DockerConfig(
-                    key='connected',
-                    value='true' if connected else 'false'
-                )
+                config = DockerConfig(key='connected', value='true' if connected else 'false')
                 db.add(config)
-            
+
             await db.commit()
             await db.refresh(config)
             return True
@@ -2633,4 +2709,3 @@ class DockerService:
 
 # 创建单例
 docker_service = DockerService()
-

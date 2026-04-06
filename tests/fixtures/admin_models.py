@@ -2,27 +2,30 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable
+from typing import TYPE_CHECKING
 from unittest.mock import MagicMock
 
 import pytest
 
+if TYPE_CHECKING:
+    from collections.abc import Callable
+
 _DEFAULT_USER_KW = {
-    "id": 1,
-    "username": "pytest_user",
-    "password": "hashed_secret",
-    "status": 1,
-    "roles": [],
-    "nickname": None,
-    "avatar": None,
-    "email": None,
-    "phone": None,
+    'id': 1,
+    'username': 'pytest_user',
+    'password': 'hashed_secret',
+    'status': 1,
+    'roles': [],
+    'nickname': None,
+    'avatar': None,
+    'email': None,
+    'phone': None,
 }
 
 _DEFAULT_ROLE_KW = {
-    "id": 1,
-    "name": "pytest_role",
-    "code": "pytest",
+    'id': 1,
+    'name': 'pytest_role',
+    'code': 'pytest',
 }
 
 

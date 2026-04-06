@@ -7,4 +7,4 @@ from backend.utils.console import console
 
 def test_console_is_rich_console() -> None:
     assert console is not None
-    assert hasattr(console, "print")
+    assert hasattr(console, 'print')

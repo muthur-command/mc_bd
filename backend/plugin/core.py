@@ -2,6 +2,7 @@ import json
 import os
 import warnings
 
+from collections.abc import Awaitable, Callable
 from functools import lru_cache
 from typing import Any
 
@@ -263,13 +264,15 @@ async def _plugin_status_checker_impl(plugin_name: str) -> None:
         raise errors.ServerError(msg=f'插件 {plugin_name} 未启用，请联系系统管理员')
 
 
-def get_plugin_status_checker(plugin_name: str):
+def get_plugin_status_checker(plugin_name: str) -> Callable[[], Awaitable[None]]:
     """
     返回用于 Depends 的插件状态校验依赖（无参，兼容 HTTP 与 WebSocket 路由）。
     使用方式：dependencies=[Depends(get_plugin_status_checker(plugin_name))]。
     """
+
     async def _check() -> None:
         await _plugin_status_checker_impl(plugin_name)
+
     return _check
 
 

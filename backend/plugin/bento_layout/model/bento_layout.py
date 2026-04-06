@@ -1,6 +1,7 @@
 """Bento 布局表：存储每页的网格布局 JSON"""
 
 import sqlalchemy as sa
+
 from sqlalchemy.orm import Mapped, mapped_column
 
 from backend.common.model import Base, UniversalText, id_key

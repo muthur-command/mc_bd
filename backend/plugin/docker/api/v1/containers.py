@@ -1,5 +1,7 @@
 """容器管理API"""
+
 import asyncio
+
 from typing import Annotated
 
 from fastapi import APIRouter, Path, Query, WebSocket, WebSocketDisconnect
@@ -19,6 +21,7 @@ router = APIRouter()
 
 @router.get('', summary='获取容器列表', dependencies=[DependsJwtAuth])
 async def list_containers(
+    *,
     all: Annotated[bool, Query(description='是否包含已停止的容器')] = False,
 ) -> ResponseSchemaModel[list[ContainerListResponse]]:
     """获取容器列表"""
@@ -121,6 +124,7 @@ async def kill_container(
 @router.delete('/{container_id}', summary='删除容器', dependencies=[DependsJwtAuth])
 async def remove_container(
     container_id: Annotated[str, Path(description='容器ID或名称')],
+    *,
     force: Annotated[bool, Query(description='是否强制删除运行中的容器')] = False,
 ) -> ResponseModel:
     """删除容器"""
@@ -158,7 +162,9 @@ async def connect_container_to_network(
     return response_base.success()
 
 
-@router.post('/{container_id}/networks/{network_name}/disconnect', summary='断开容器网络连接', dependencies=[DependsJwtAuth])
+@router.post(
+    '/{container_id}/networks/{network_name}/disconnect', summary='断开容器网络连接', dependencies=[DependsJwtAuth]
+)
 async def disconnect_container_from_network(
     container_id: Annotated[str, Path(description='容器ID或名称')],
     network_name: Annotated[str, Path(description='网络名称')],
@@ -172,6 +178,7 @@ async def disconnect_container_from_network(
 async def get_container_logs(
     container_id: Annotated[str, Path(description='容器ID或名称')],
     tail: Annotated[int, Query(description='显示最后N行')] = 100,
+    *,
     follow: Annotated[bool, Query(description='是否持续跟踪')] = False,
 ) -> ResponseSchemaModel[str]:
     """获取容器日志"""
@@ -183,29 +190,29 @@ async def get_container_logs(
 async def container_logs_websocket(
     websocket: WebSocket,
     container_id: Annotated[str, Path(description='容器ID或名称')],
-):
+) -> None:
     """
     通过WebSocket实时获取容器日志
-    
+
     连接后，需要发送 {'action': 'start', 'tail': 100} 消息来开始推送日志
     发送 {'action': 'stop'} 消息来停止推送
     """
-    
+
     log.info(f'[WebSocket] 收到容器日志连接请求: container_id={container_id}')
-    
+
     try:
         await websocket.accept()
         log.info(f'[WebSocket] WebSocket连接已接受: container_id={container_id}')
     except Exception as e:
         log.error(f'[WebSocket] 接受连接失败: container_id={container_id}, error={e}')
         return
-    
+
     # 推送状态标志
     is_pushing = False
     loop_count = 0
     last_log_count = 0
     tail_lines = 100  # 默认获取最后100行
-    
+
     try:
         # 主循环：接收消息并处理
         while True:
@@ -213,7 +220,7 @@ async def container_logs_websocket(
                 # 接收客户端消息（非阻塞，设置超时）
                 try:
                     message = await asyncio.wait_for(websocket.receive_json(), timeout=0.1)
-                    
+
                     if isinstance(message, dict):
                         action = message.get('action')
                         if action == 'start':
@@ -222,7 +229,9 @@ async def container_logs_websocket(
                                 loop_count = 0
                                 last_log_count = 0
                                 tail_lines = message.get('tail', 100)
-                                log.info(f'[WebSocket] 收到启动推送请求: container_id={container_id}, tail={tail_lines}')
+                                log.info(
+                                    f'[WebSocket] 收到启动推送请求: container_id={container_id}, tail={tail_lines}'
+                                )
                                 await websocket.send_json({
                                     'type': 'control',
                                     'message': '推送已启动',
@@ -246,7 +255,7 @@ async def container_logs_websocket(
                     raise
                 except Exception as e:
                     log.warning(f'[WebSocket] 接收消息失败: container_id={container_id}, error={e}')
-                
+
                 # 如果正在推送，获取并发送日志
                 if is_pushing:
                     try:
@@ -254,10 +263,12 @@ async def container_logs_websocket(
                         if loop_count == 1:
                             log.info(f'[WebSocket] 开始获取容器日志: container_id={container_id}')
                             # 第一次获取，发送全部日志
-                            container_logs = docker_service.get_container_logs(container_id, tail=tail_lines, follow=False)
+                            container_logs = docker_service.get_container_logs(
+                                container_id, tail=tail_lines, follow=False
+                            )
                             log_lines = container_logs.split('\n') if container_logs else []
                             last_log_count = len(log_lines)
-                            
+
                             await websocket.send_json({
                                 'type': 'logs',
                                 'data': container_logs,
@@ -268,29 +279,31 @@ async def container_logs_websocket(
                             # 获取所有日志（使用较大的tail值）
                             all_logs = docker_service.get_container_logs(container_id, tail=10000, follow=False)
                             all_log_lines = all_logs.split('\n') if all_logs else []
-                            
+
                             # 只发送新增的行
                             if len(all_log_lines) > last_log_count:
                                 new_lines = all_log_lines[last_log_count:]
                                 new_logs = '\n'.join(new_lines)
                                 last_log_count = len(all_log_lines)
-                                
+
                                 if new_logs.strip():
                                     await websocket.send_json({
                                         'type': 'logs',
                                         'data': new_logs,
                                         'is_initial': False,
                                     })
-                        
+
                         # 等待1秒后发送下一次数据（更频繁的轮询，实现实时效果）
                         await asyncio.sleep(1)
                     except WebSocketDisconnect:
                         raise
                     except Exception as e:
-                        log.error(f'[WebSocket] 获取或发送日志失败: container_id={container_id}, error={e}', exc_info=True)
+                        log.error(
+                            f'[WebSocket] 获取或发送日志失败: container_id={container_id}, error={e}', exc_info=True
+                        )
                         await websocket.send_json({
                             'type': 'error',
-                            'message': f'获取日志失败: {str(e)}',
+                            'message': f'获取日志失败: {e!s}',
                         })
                 else:
                     # 如果未在推送，短暂等待后继续循环
@@ -313,26 +326,26 @@ async def container_logs_websocket(
 async def container_stats_websocket(
     websocket: WebSocket,
     container_id: Annotated[str, Path(description='容器ID或名称')],
-):
+) -> None:
     """
     通过WebSocket实时获取容器统计信息（CPU、内存、网络、I/O）
-    
+
     连接后，需要发送 {'action': 'start'} 消息来开始推送统计信息
     发送 {'action': 'stop'} 消息来停止推送
     """
     log.info(f'[WebSocket] 收到容器统计连接请求: container_id={container_id}')
-    
+
     try:
         await websocket.accept()
         log.info(f'[WebSocket] WebSocket连接已接受: container_id={container_id}')
     except Exception as e:
         log.error(f'[WebSocket] 接受连接失败: container_id={container_id}, error={e}')
         return
-    
+
     # 推送状态标志
     is_pushing = False
     loop_count = 0
-    
+
     try:
         # 主循环：接收消息并处理
         while True:
@@ -341,7 +354,7 @@ async def container_stats_websocket(
                 try:
                     # 使用 asyncio.wait_for 设置超时，避免阻塞
                     message = await asyncio.wait_for(websocket.receive_json(), timeout=0.1)
-                    
+
                     if isinstance(message, dict):
                         action = message.get('action')
                         if action == 'start':
@@ -372,32 +385,36 @@ async def container_stats_websocket(
                     raise
                 except Exception as e:
                     log.warning(f'[WebSocket] 接收消息失败: container_id={container_id}, error={e}')
-                
+
                 # 如果正在推送，获取并发送统计信息
                 if is_pushing:
                     try:
                         loop_count += 1
                         if loop_count == 1:
                             log.info(f'[WebSocket] 开始获取容器统计信息: container_id={container_id}')
-                        
+
                         # 获取容器统计信息
                         stats = docker_service.get_container_stats(container_id)
-                        
+
                         if loop_count <= 3:
-                            log.info(f'[WebSocket] 获取到统计信息 (第{loop_count}次): container_id={container_id}, stats_keys={list(stats.keys()) if isinstance(stats, dict) else "N/A"}')
-                        
+                            log.info(
+                                f'[WebSocket] 获取到统计信息 (第{loop_count}次): container_id={container_id}, stats_keys={list(stats.keys()) if isinstance(stats, dict) else "N/A"}'
+                            )
+
                         # 发送统计信息（如果连接断开，这里会抛出 WebSocketDisconnect 异常）
                         await websocket.send_json({
                             'type': 'stats',
                             'data': stats,
                         })
-                        
+
                         # 等待1秒后发送下一次数据
                         await asyncio.sleep(1)
                     except WebSocketDisconnect:
                         raise
                     except Exception as e:
-                        log.error(f'[WebSocket] 获取或发送统计信息失败: container_id={container_id}, error={e}', exc_info=True)
+                        log.error(
+                            f'[WebSocket] 获取或发送统计信息失败: container_id={container_id}, error={e}', exc_info=True
+                        )
                         # 尝试发送错误信息
                         try:
                             await websocket.send_json({
@@ -413,12 +430,12 @@ async def container_stats_websocket(
                 else:
                     # 如果未在推送，短暂等待后继续循环
                     await asyncio.sleep(0.5)
-                
+
             except WebSocketDisconnect:
                 # 客户端断开连接，退出循环，停止推送
                 log.info(f'[WebSocket] 客户端断开连接，停止推送: container_id={container_id}')
                 break
-                
+
     except WebSocketDisconnect:
         # 客户端断开连接
         log.info(f'[WebSocket] 客户端断开连接: container_id={container_id}')
@@ -428,7 +445,7 @@ async def container_stats_websocket(
         try:
             await websocket.send_json({
                 'type': 'error',
-                'message': f'连接错误: {str(e)}',
+                'message': f'连接错误: {e!s}',
             })
         except:
             pass
@@ -437,4 +454,3 @@ async def container_stats_websocket(
                 await websocket.close()
             except:
                 pass
-

@@ -13,22 +13,22 @@ import pytest
 from tests.helpers.paths import backend_dotenv_path
 
 
-@pytest.fixture(scope="session", autouse=True)
+@pytest.fixture(scope='session', autouse=True)
 def _session_env_hint() -> None:
     """缺少 .env 时提示。"""
     env = backend_dotenv_path()
     if not env.is_file():
         warnings.warn(
-            f"未找到 {env}，部分用例可能失败；可从 .env.example 复制。",
+            f'未找到 {env}，部分用例可能失败；可从 .env.example 复制。',
             stacklevel=2,
         )
 
 
 def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item]) -> None:
     """未设置 RUN_INTEGRATION=1 时跳过 @pytest.mark.integration。"""
-    if os.environ.get("RUN_INTEGRATION", "").strip().lower() in ("1", "true", "yes"):
+    if os.environ.get('RUN_INTEGRATION', '').strip().lower() in ('1', 'true', 'yes'):
         return
-    skip_int = pytest.mark.skip(reason="设置 RUN_INTEGRATION=1 以运行集成测试")
+    skip_int = pytest.mark.skip(reason='设置 RUN_INTEGRATION=1 以运行集成测试')
     for item in items:
-        if "integration" in item.keywords:
+        if 'integration' in item.keywords:
             item.add_marker(skip_int)

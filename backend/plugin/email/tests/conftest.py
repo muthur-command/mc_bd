@@ -2,13 +2,13 @@
 
 from __future__ import annotations
 
-from collections.abc import Generator
+from typing import TYPE_CHECKING
 from unittest.mock import AsyncMock, patch
 
 import pytest
+
 from fastapi import FastAPI
 from starlette.middleware.authentication import AuthenticationMiddleware
-from starlette.testclient import TestClient
 from starlette_context.middleware import ContextMiddleware
 from starlette_context.plugins import RequestIdPlugin
 
@@ -17,6 +17,11 @@ from backend.middleware.jwt_auth_middleware import JwtAuthMiddleware
 from backend.plugin.email.api.router import v1 as email_v1
 from tests.helpers.admin_test_user import default_admin_jwt_user
 from tests.helpers.fastapi_testing import noop_rate_limiter_call, starlette_test_client
+
+if TYPE_CHECKING:
+    from collections.abc import Generator
+
+    from starlette.testclient import TestClient
 
 
 @pytest.fixture
@@ -65,7 +70,7 @@ def _email_noop_rate_limiter() -> Generator[None, None, None]:
 def _email_stub_jwt() -> Generator[None, None, None]:
     user = default_admin_jwt_user()
     with patch(
-        "backend.middleware.jwt_auth_middleware.jwt_authentication",
+        'backend.middleware.jwt_auth_middleware.jwt_authentication',
         new_callable=AsyncMock,
         return_value=user,
     ):

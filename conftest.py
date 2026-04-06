@@ -23,24 +23,24 @@ def pytest_unconfigure(config: pytest.Config) -> None:
 
 
 pytest_plugins = (
-    "tests.fixtures.db",
-    "tests.fixtures.redis",
-    "tests.fixtures.admin_models",
-    "tests.fixtures.fastapi_minimal",
-    "tests.fixtures.crypto_keys",
-    "tests.fixtures.http_headers_fixtures",
-    "tests.fixtures.celery",
-    "tests.fixtures.jwt_context",
+    'tests.fixtures.db',
+    'tests.fixtures.redis',
+    'tests.fixtures.admin_models',
+    'tests.fixtures.fastapi_minimal',
+    'tests.fixtures.crypto_keys',
+    'tests.fixtures.http_headers_fixtures',
+    'tests.fixtures.celery',
+    'tests.fixtures.jwt_context',
 )
 
 
 def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item]) -> None:
     """设置 `SKIP_SLOW=1` 时跳过 `@pytest.mark.slow`（与 `-m "not slow"` 二选一）。"""
-    if os.environ.get("SKIP_SLOW", "").strip().lower() not in ("1", "true", "yes"):
+    if os.environ.get('SKIP_SLOW', '').strip().lower() not in ('1', 'true', 'yes'):
         return
     skip = pytest.mark.skip(
-        reason="已设置 SKIP_SLOW：跳过慢测；完整套件请 unset SKIP_SLOW 或仅对子集运行",
+        reason='已设置 SKIP_SLOW：跳过慢测；完整套件请 unset SKIP_SLOW 或仅对子集运行',
     )
     for item in items:
-        if "slow" in item.keywords:
+        if 'slow' in item.keywords:
             item.add_marker(skip)

@@ -1,7 +1,6 @@
-from backend.const import __version__
-
 import sqlalchemy as sa
 
+from backend.const import __version__ as __version__
 from backend.utils.dynamic_import import get_all_models
 
 # import all models for auto create db tables

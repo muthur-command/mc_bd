@@ -9,7 +9,7 @@ from backend.core.conf import settings
 from backend.utils.dynamic_import import import_module_cached
 
 
-async def rbac_verify(request: Request, _token: str = DependsJwtAuth) -> None:  # noqa: C901
+async def rbac_verify(request: Request, _token: str = DependsJwtAuth) -> None:
     """
     RBAC 权限校验（鉴权顺序很重要，谨慎修改）
 
@@ -53,15 +53,14 @@ async def rbac_verify(request: Request, _token: str = DependsJwtAuth) -> None:  
             return
         # 无菜单模块时，仅依赖 is_staff，已在上方校验
         return
-    else:
-        try:
-            casbin_rbac = import_module_cached('backend.plugin.casbin_rbac.rbac')
-            casbin_verify = casbin_rbac.casbin_verify
-        except (ImportError, AttributeError) as e:
-            log.error(f'正在通过 casbin 执行 RBAC 权限校验，但此插件不存在: {e}')
-            raise errors.ServerError(msg='error.permission_check_failed')
+    try:
+        casbin_rbac = import_module_cached('backend.plugin.casbin_rbac.rbac')
+        casbin_verify = casbin_rbac.casbin_verify
+    except (ImportError, AttributeError) as e:
+        log.error(f'正在通过 casbin 执行 RBAC 权限校验，但此插件不存在: {e}')
+        raise errors.ServerError(msg='error.permission_check_failed')
 
-        await casbin_verify(request)
+    await casbin_verify(request)
 
 
 # RBAC 授权依赖注入

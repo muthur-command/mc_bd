@@ -13,18 +13,18 @@ def svc() -> DockerService:
 
 
 @pytest.mark.parametrize(
-    ("raw", "expected_bytes"),
+    ('raw', 'expected_bytes'),
     [
-        ("", 0),
-        ("0B", 0),
-        ("  0b  ", 0),
-        ("100", 100),
-        ("1B", 1),
-        ("2KB", 2 * 1024),
-        ("1MB", 1024**2),
-        ("1.5GB", int(1.5 * 1024**3)),
-        ("1TB", 1024**4),
-        ("not-a-size", 0),
+        ('', 0),
+        ('0B', 0),
+        ('  0b  ', 0),
+        ('100', 100),
+        ('1B', 1),
+        ('2KB', 2 * 1024),
+        ('1MB', 1024**2),
+        ('1.5GB', int(1.5 * 1024**3)),
+        ('1TB', 1024**4),
+        ('not-a-size', 0),
     ],
 )
 def test_parse_size_cases(svc: DockerService, raw: str, expected_bytes: int) -> None:
@@ -32,4 +32,4 @@ def test_parse_size_cases(svc: DockerService, raw: str, expected_bytes: int) -> 
 
 
 def test_parse_size_strips_and_uppercases_unit(svc: DockerService) -> None:
-    assert svc._parse_size("  10 mb ") == 10 * 1024**2
+    assert svc._parse_size('  10 mb ') == 10 * 1024**2

@@ -17,9 +17,9 @@ def test_request_error_defaults() -> None:
 
 
 def test_forbidden_error_code() -> None:
-    err = ForbiddenError(msg="no")
+    err = ForbiddenError(msg='no')
     assert err.code == StandardResponseCode.HTTP_403
-    assert err.msg == "no"
+    assert err.msg == 'no'
 
 
 def test_plugin_errors_are_exception_subclasses() -> None:

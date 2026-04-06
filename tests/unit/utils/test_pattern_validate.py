@@ -6,19 +6,19 @@ from backend.utils import pattern_validate as pv
 
 
 def test_is_phone_valid() -> None:
-    assert pv.is_phone("13800138000")
+    assert pv.is_phone('13800138000')
 
 
 def test_is_phone_invalid() -> None:
-    assert pv.is_phone("123") is None
+    assert pv.is_phone('123') is None
 
 
 @pytest.mark.parametrize(
-    ("url", "ok"),
+    ('url', 'ok'),
     [
-        ("https://github.com/org/repo.git", True),
-        ("http://host/path/repo", True),
-        ("ftp://bad", False),
+        ('https://github.com/org/repo.git', True),
+        ('http://host/path/repo', True),
+        ('ftp://bad', False),
     ],
 )
 def test_is_git_url(url: str, ok: bool) -> None:
@@ -27,6 +27,6 @@ def test_is_git_url(url: str, ok: bool) -> None:
 
 
 def test_is_has_number_and_letter() -> None:
-    assert pv.is_has_number("a1")
-    assert pv.is_has_letter("1b")
-    assert pv.is_has_special_char("a!")
+    assert pv.is_has_number('a1')
+    assert pv.is_has_letter('1b')
+    assert pv.is_has_special_char('a!')

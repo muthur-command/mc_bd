@@ -29,7 +29,7 @@ def send_apprise(url: str, title: str, body: str) -> tuple[bool, str | None]:
         return False, 'invalid_apprise_url'
     try:
         ok = obj.notify(title=title or None, body=body or '')
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         return False, str(exc)[:2000]
     if not ok:
         return False, 'notify_rejected'

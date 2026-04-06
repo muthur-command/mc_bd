@@ -1,4 +1,5 @@
 """网络管理API"""
+
 from typing import Annotated
 
 from fastapi import APIRouter, Path
@@ -54,7 +55,6 @@ async def remove_network(
     except Exception:
         # 如果获取网络列表失败，直接尝试删除（让 Docker 处理错误）
         pass
-    
+
     docker_service.remove_network(network_id)
     return response_base.success()
-

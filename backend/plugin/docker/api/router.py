@@ -1,4 +1,5 @@
 """Docker管理插件路由"""
+
 from fastapi import APIRouter
 
 from backend.core.conf import settings
@@ -34,4 +35,3 @@ v1.include_router(volumes.router, prefix='/volumes', tags=['卷管理'])
 
 # 系统信息
 v1.include_router(system.router, prefix='/system', tags=['系统信息'])
-

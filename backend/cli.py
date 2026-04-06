@@ -212,9 +212,7 @@ async def init(db: AsyncSession, redis: RedisCli) -> None:
     panel_content.append(f'{settings.DATABASE_SCHEMA}', style='yellow')
     panel_content.append('\n  • 主键模式：')
     panel_content.append(f'{settings.DATABASE_PK_MODE}', style='yellow')
-    pk_details = panel_content.from_markup(
-        '[link=https://xxx.com]（了解详情）[/]'
-    )
+    pk_details = panel_content.from_markup('[link=https://xxx.com]（了解详情）[/]')
     panel_content.append(pk_details)
     panel_content.append('\n\n【Redis 配置】', style='bold green')
     panel_content.append('\n\n  • 主机：')

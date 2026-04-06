@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import pytest
+
 from fastapi import FastAPI
 
 from tests.helpers.fastapi_testing import starlette_test_client

@@ -141,10 +141,7 @@ class AuthService:
                 httponly=True,
             )
         except (errors.RequestError, errors.CustomError, errors.AuthorizationError) as e:
-            is_captcha_error = (
-                isinstance(e, errors.CustomError)
-                and e.code == CustomErrorCode.CAPTCHA_ERROR.code
-            )
+            is_captcha_error = isinstance(e, errors.CustomError) and e.code == CustomErrorCode.CAPTCHA_ERROR.code
             if not user:
                 log.error('登陆错误: 用户名不存在')
             elif is_captcha_error:

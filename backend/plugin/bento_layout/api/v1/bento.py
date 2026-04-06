@@ -1,13 +1,14 @@
 """Bento 布局 CRUD API"""
 
 import json
-from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException
+from typing import Annotated, Any
+
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.common.response.response_schema import response_base
+from backend.common.response.response_schema import ResponseModel, response_base
 from backend.common.security.jwt import DependsJwtAuth
 from backend.database.db import get_db
 from backend.plugin.bento_layout.model.bento_layout import BentoLayoutRecord
@@ -18,8 +19,8 @@ router = APIRouter(dependencies=[DependsJwtAuth])
 @router.post('/save', summary='保存 Bento 布局')
 async def save_bento_layout(
     data: dict[str, Any],
-    db: AsyncSession = Depends(get_db),
-):
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> ResponseModel:
     page_id = data.get('pageId')
     layout = data.get('layout')
     if not page_id or layout is None:
@@ -41,10 +42,10 @@ async def save_bento_layout(
 
 @router.get('/get', summary='获取 Bento 布局')
 async def get_bento_layout(
-    pageId: str,
-    db: AsyncSession = Depends(get_db),
-):
-    result = await db.execute(select(BentoLayoutRecord).where(BentoLayoutRecord.page_id == pageId))
+    page_id: Annotated[str, Query(alias='pageId')],
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> ResponseModel:
+    result = await db.execute(select(BentoLayoutRecord).where(BentoLayoutRecord.page_id == page_id))
     row = result.scalars().first()
     if not row:
         raise HTTPException(status_code=404, detail='error.bento_layout.not_found')
@@ -56,7 +57,7 @@ async def get_bento_layout(
     return response_base.success(
         data={
             'layout': layout,
-            'pageId': pageId,
+            'pageId': page_id,
             'timestamp': timestamp,
         },
     )
@@ -64,10 +65,10 @@ async def get_bento_layout(
 
 @router.delete('/delete', summary='删除 Bento 布局')
 async def delete_bento_layout(
-    pageId: str,
-    db: AsyncSession = Depends(get_db),
-):
-    result = await db.execute(select(BentoLayoutRecord).where(BentoLayoutRecord.page_id == pageId))
+    page_id: Annotated[str, Query(alias='pageId')],
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> ResponseModel:
+    result = await db.execute(select(BentoLayoutRecord).where(BentoLayoutRecord.page_id == page_id))
     row = result.scalars().first()
     if not row:
         raise HTTPException(status_code=404, detail='error.bento_layout.not_found')
@@ -78,8 +79,10 @@ async def delete_bento_layout(
 
 
 @router.get('/list', summary='列出已保存的布局')
-async def list_bento_layouts(db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(BentoLayoutRecord.page_id, BentoLayoutRecord.updated_time, BentoLayoutRecord.created_time))
+async def list_bento_layouts(db: Annotated[AsyncSession, Depends(get_db)]) -> ResponseModel:
+    result = await db.execute(
+        select(BentoLayoutRecord.page_id, BentoLayoutRecord.updated_time, BentoLayoutRecord.created_time)
+    )
     rows = result.all()
     layout_list = []
     for page_id, updated_time, created_time in rows:

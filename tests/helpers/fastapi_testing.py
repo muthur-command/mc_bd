@@ -2,17 +2,21 @@
 
 from __future__ import annotations
 
-from collections.abc import AsyncGenerator, Callable, Generator
 from contextlib import contextmanager
+from typing import TYPE_CHECKING
 from unittest.mock import AsyncMock, patch
 
 from fastapi import FastAPI
 from fastapi_pagination import add_pagination
-from starlette.requests import Request
-from starlette.responses import Response
 from starlette.testclient import TestClient
 
 from backend.database.db import get_db, get_db_transaction
+
+if TYPE_CHECKING:
+    from collections.abc import AsyncGenerator, Callable, Generator
+
+    from starlette.requests import Request
+    from starlette.responses import Response
 
 
 def apply_mock_db_dependency_overrides(app: FastAPI) -> None:
@@ -44,7 +48,7 @@ def noop_rate_limiter_call() -> Generator[None, None, None]:
     async def _noop(_self: object, request: Request, response: Response) -> None:
         return None
 
-    with patch("fastapi_limiter.depends.RateLimiter.__call__", _noop):
+    with patch('fastapi_limiter.depends.RateLimiter.__call__', _noop):
         yield
 
 

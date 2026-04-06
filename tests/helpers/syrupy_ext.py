@@ -4,12 +4,14 @@ from __future__ import annotations
 
 from datetime import date, datetime
 from enum import Enum
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from pydantic import BaseModel
 from syrupy.extensions.amber import AmberDataSerializer, AmberSnapshotExtension
 from syrupy.extensions.amber.serializer import AmberDataSerializerPlugin
-from syrupy.types import SerializableData
+
+if TYPE_CHECKING:
+    from syrupy.types import SerializableData
 
 
 class _PydanticModelPlugin(AmberDataSerializerPlugin):
@@ -20,7 +22,7 @@ class _PydanticModelPlugin(AmberDataSerializerPlugin):
     @classmethod
     def serialize(cls, data: SerializableData, **kwargs: Any) -> str:
         assert isinstance(data, BaseModel)
-        normalized = data.model_dump(mode="json")
+        normalized = data.model_dump(mode='json')
         return McBdSnapshotSerializer._serialize(normalized, **kwargs)
 
 
@@ -49,7 +51,7 @@ class _DateTimePlugin(AmberDataSerializerPlugin):
 class McBdSnapshotSerializer(AmberDataSerializer):
     """提升 `VERSION` 可在序列化规则变更后一次性使旧快照失效。"""
 
-    VERSION = "mc_bd-1"
+    VERSION = 'mc_bd-1'
     serializer_plugins = (
         _PydanticModelPlugin,
         _EnumPlugin,

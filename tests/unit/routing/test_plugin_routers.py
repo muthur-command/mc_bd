@@ -1,6 +1,7 @@
 """各插件 API 聚合路由至少挂载一条子路由。"""
 
 import pytest
+
 from fastapi import APIRouter
 from fastapi.routing import APIRoute, APIWebSocketRoute
 
@@ -24,15 +25,15 @@ def _count_api_routes(router) -> int:
 
 
 @pytest.mark.parametrize(
-    "name,router",
+    'name,router',
     [
-        ("apprise", apprise_v1),
-        ("bento_layout", bento_v1),
-        ("card", card_v1),
-        ("docker", docker_v1),
-        ("email", email_v1),
-        ("oauth2", oauth2_v1),
-        ("system_monitor", monitor_v1),
+        ('apprise', apprise_v1),
+        ('bento_layout', bento_v1),
+        ('card', card_v1),
+        ('docker', docker_v1),
+        ('email', email_v1),
+        ('oauth2', oauth2_v1),
+        ('system_monitor', monitor_v1),
     ],
 )
 def test_plugin_v1_has_routes(name: str, router) -> None:

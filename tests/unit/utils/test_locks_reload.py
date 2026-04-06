@@ -18,9 +18,9 @@ async def test_acquire_reload_lock_acquires_and_releases() -> None:
     path_mock.touch = AsyncMock()
     path_mock.unlink = AsyncMock()
 
-    with patch("backend.utils.locks.redis_client") as rc:
+    with patch('backend.utils.locks.redis_client') as rc:
         rc.lock = MagicMock(return_value=lock)
-        with patch("backend.utils.locks.anyio.Path", return_value=path_mock):
+        with patch('backend.utils.locks.anyio.Path', return_value=path_mock):
             from backend.utils.locks import acquire_distributed_reload_lock
 
             async with acquire_distributed_reload_lock():

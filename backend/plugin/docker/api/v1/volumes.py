@@ -1,7 +1,8 @@
 """卷管理API"""
+
 from typing import Annotated
 
-from fastapi import APIRouter, Path, Query
+from fastapi import APIRouter, Path
 
 from backend.common.response.response_code import CustomResponse
 from backend.common.response.response_schema import ResponseModel, ResponseSchemaModel, response_base
@@ -54,4 +55,3 @@ async def remove_volume(
         )
     docker_service.remove_volume(volume_name)
     return response_base.success()
-

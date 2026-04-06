@@ -22,7 +22,7 @@ async def test_create_tables_runs_metadata_create_all() -> None:
     engine = MagicMock()
     engine.begin = MagicMock(return_value=_BeginCM())
 
-    with patch("backend.database.db.async_engine", engine):
+    with patch('backend.database.db.async_engine', engine):
         await create_tables()
 
     conn.run_sync.assert_awaited_once()
@@ -45,7 +45,7 @@ async def test_drop_tables_runs_metadata_drop_all() -> None:
     engine = MagicMock()
     engine.begin = MagicMock(return_value=_BeginCM())
 
-    with patch("backend.database.db.async_engine", engine):
+    with patch('backend.database.db.async_engine', engine):
         await drop_tables()
 
     conn.run_sync.assert_awaited_once()

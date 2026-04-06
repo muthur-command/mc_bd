@@ -1,12 +1,11 @@
 from collections.abc import Sequence
-from typing import Any
 
 from sqlalchemy import Select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy_crud_plus import CRUDPlus
 
 from backend.app.admin.model import Role
-from backend.app.admin.schema.role import CreateRoleParam, DeleteRoleParam, UpdateRoleParam
+from backend.app.admin.schema.role import CreateRoleParam, UpdateRoleParam
 
 
 class CRUDRole(CRUDPlus[Role]):

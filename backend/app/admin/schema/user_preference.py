@@ -21,6 +21,7 @@ class UserPreferenceSchema(SchemaBase):
     plugin_system_show_remote: bool = Field(default=False, description='插件管理页是否显示远程列表')
     profile_cover: str | None = Field(None, description='个人资料页背景图路径')
 
+
 class UpdateUserPreferenceParam(UserPreferenceSchema):
     """更新用户偏好参数：全部可选"""
 

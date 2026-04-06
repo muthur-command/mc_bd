@@ -15,4 +15,4 @@ async def test_http_limit_callback_raises_429_with_retry_after() -> None:
     with pytest.raises(errors.HTTPError) as ei:
         await http_limit_callback(req, resp, expire=2500)
     assert ei.value.status_code == 429
-    assert ei.value.headers["Retry-After"] == "3"
+    assert ei.value.headers['Retry-After'] == '3'

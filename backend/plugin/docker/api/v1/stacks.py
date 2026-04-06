@@ -1,7 +1,8 @@
 """堆栈管理API (Docker Compose)"""
+
 from typing import Annotated
 
-from fastapi import APIRouter, Path, Query
+from fastapi import APIRouter, Query
 
 from backend.common.response.response_schema import ResponseModel, ResponseSchemaModel, response_base
 from backend.common.security.jwt import DependsJwtAuth
@@ -9,7 +10,6 @@ from backend.plugin.docker.schema.docker import (
     DeployStackParam,
     RemoveStackParam,
     StackListResponse,
-    StackServicesParam,
     StopStackParam,
 )
 from backend.plugin.docker.service.docker_service import docker_service
@@ -53,4 +53,3 @@ async def get_stack_services(
     """获取堆栈服务列表"""
     services = docker_service.get_stack_services(project_name, compose_file)
     return response_base.success(data=services)
-

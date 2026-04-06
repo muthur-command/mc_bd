@@ -4,6 +4,6 @@ from backend.utils import dynamic_config as dc
 
 
 def test_to_bool_only_true_string() -> None:
-    assert dc._to_bool("true") is True
-    assert dc._to_bool("false") is False
-    assert dc._to_bool("") is False
+    assert dc._to_bool('true') is True
+    assert dc._to_bool('false') is False
+    assert dc._to_bool('') is False

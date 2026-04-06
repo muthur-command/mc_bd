@@ -42,7 +42,7 @@ logger = get_logger('mc.schedulers')
 class ModelEntry(ScheduleEntry):
     """任务调度实体"""
 
-    def __init__(self, model: TaskScheduler, app=None) -> None:  # noqa:ANN001,C901
+    def __init__(self, model: TaskScheduler, app=None) -> None:  # noqa: ANN001
         super().__init__(
             app=app or current_app._get_current_object(),
             name=model.name,

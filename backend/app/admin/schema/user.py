@@ -31,7 +31,9 @@ class AddUserParam(AuthSchemaBase):
     """添加用户参数"""
 
     nickname: str | None = Field(None, description='昵称')
-    avatar: str | None = Field(None, max_length=AVATAR_INPUT_MAX_LENGTH, description='头像：URL 或 data URI（Boring 生成 / 本地上传）')
+    avatar: str | None = Field(
+        None, max_length=AVATAR_INPUT_MAX_LENGTH, description='头像：URL 或 data URI（Boring 生成 / 本地上传）'
+    )
     email: CustomEmailStr | None = Field(None, description='邮箱')
     phone: CustomPhoneNumber | None = Field(None, description='手机号码')
     roles: list[int] = Field(description='角色 ID 列表')

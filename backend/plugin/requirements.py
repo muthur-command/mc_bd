@@ -3,9 +3,9 @@ import os
 import shutil
 import subprocess
 import sys
-from pathlib import Path
 
 from importlib.metadata import PackageNotFoundError, distribution
+from pathlib import Path
 
 from packaging.requirements import Requirement
 from starlette.concurrency import run_in_threadpool
@@ -46,11 +46,18 @@ def _resolve_uv_executable() -> str | None:
         home / '.local' / 'bin' / 'uv',
         home / '.cargo' / 'bin' / 'uv',
     ):
-        try:
-            if candidate.is_file() and os.access(candidate, os.X_OK):
-                return str(candidate)
-        except OSError:
-            continue
+        resolved = _candidate_uv_if_executable(candidate)
+        if resolved:
+            return resolved
+    return None
+
+
+def _candidate_uv_if_executable(candidate: Path) -> str | None:
+    try:
+        if candidate.is_file() and os.access(candidate, os.X_OK):
+            return str(candidate)
+    except OSError:
+        pass
     return None
 
 

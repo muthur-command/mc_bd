@@ -1,4 +1,5 @@
 """系统信息API"""
+
 from fastapi import APIRouter
 
 from backend.common.response.response_schema import ResponseModel, ResponseSchemaModel, response_base
@@ -46,4 +47,3 @@ async def set_connected_status(
     if success:
         return response_base.success(data={'message': '设置成功'})
     return response_base.fail()
-

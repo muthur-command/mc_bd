@@ -14,7 +14,7 @@ def default_admin_jwt_user() -> GetUserInfoWithRelationDetail:
     now = datetime(2026, 1, 1, 12, 0, 0)
     role = GetRoleDetail(
         id=1,
-        name="pytest_role",
+        name='pytest_role',
         status=StatusType.enable,
         remark=None,
         created_time=now,
@@ -22,9 +22,9 @@ def default_admin_jwt_user() -> GetUserInfoWithRelationDetail:
     )
     return GetUserInfoWithRelationDetail(
         id=1,
-        uuid="00000000-0000-4000-8000-000000000001",
-        username="pytest_admin",
-        nickname="pytest",
+        uuid='00000000-0000-4000-8000-000000000001',
+        username='pytest_admin',
+        nickname='pytest',
         avatar=None,
         email=None,
         phone=None,

@@ -17,30 +17,30 @@ def test_state_middleware_populates_context() -> None:
     app.add_middleware(StateMiddleware)
     app.add_middleware(ContextMiddleware, plugins=[RequestIdPlugin(validate=False)])
 
-    ip_info = IpInfo(ip="10.0.0.1", country="C", region="R", city="City")
+    ip_info = IpInfo(ip='10.0.0.1', country='C', region='R', city='City')
     ua_info = UserAgentInfo(
-        user_agent="UA/1.0",
-        os="Linux",
-        browser="Firefox",
-        device="desktop",
+        user_agent='UA/1.0',
+        os='Linux',
+        browser='Firefox',
+        device='desktop',
     )
 
-    @app.get("/ctx")
+    @app.get('/ctx')
     async def _ctx() -> dict:
         return {
-            "ip": ctx.ip,
-            "country": ctx.country,
-            "city": ctx.city,
-            "browser": ctx.browser,
+            'ip': ctx.ip,
+            'country': ctx.country,
+            'city': ctx.city,
+            'browser': ctx.browser,
         }
 
-    with patch("backend.middleware.state_middleware.parse_ip_info", new_callable=AsyncMock, return_value=ip_info):
-        with patch("backend.middleware.state_middleware.parse_user_agent_info", return_value=ua_info):
+    with patch('backend.middleware.state_middleware.parse_ip_info', new_callable=AsyncMock, return_value=ip_info):
+        with patch('backend.middleware.state_middleware.parse_user_agent_info', return_value=ua_info):
             client = TestClient(app)
-            r = client.get("/ctx")
+            r = client.get('/ctx')
             assert r.status_code == 200
             data = r.json()
-            assert data["ip"] == "10.0.0.1"
-            assert data["country"] == "C"
-            assert data["city"] == "City"
-            assert data["browser"] == "Firefox"
+            assert data['ip'] == '10.0.0.1'
+            assert data['country'] == 'C'
+            assert data['city'] == 'City'
+            assert data['browser'] == 'Firefox'

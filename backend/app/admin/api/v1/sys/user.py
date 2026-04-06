@@ -31,9 +31,7 @@ async def get_current_user(request: Request) -> ResponseSchemaModel[GetCurrentUs
 
 
 @router.get('/me/preferences', summary='获取当前用户偏好', dependencies=[DependsJwtAuth])
-async def get_my_preferences(
-    db: CurrentSession, request: Request
-) -> ResponseSchemaModel[UserPreferenceSchema]:
+async def get_my_preferences(db: CurrentSession, request: Request) -> ResponseSchemaModel[UserPreferenceSchema]:
     data = await user_preference_service.get_preferences(db, request.user.id)
     return response_base.success(data=data)
 
