@@ -148,7 +148,11 @@ jobs:
           tests_glob=""
           lint_only=""
           skip_coverage=""
-          default_python=$(tr -d '\n' < .python-version)
+          if [[ -f .python-version ]]; then
+            default_python=$(tr -d '\n' < .python-version)
+          else
+            default_python="3.12"
+          fi
           all_python_versions=$(jq -cn --arg default_python "${default_python}" \
             --argjson additional_python_versions "${ADDITIONAL_PYTHON_VERSIONS}" \
             '[$default_python] + $additional_python_versions')
@@ -226,7 +230,9 @@ jobs:
       - name: Install uv
         uses: astral-sh/setup-uv@v5
       - name: Set up Python
-        run: uv python install "$(tr -d '\n' < .python-version)"
+        run: |
+          default_python=$(test -f .python-version && tr -d '\n' < .python-version || echo '3.12')
+          uv python install "${default_python}"
       - name: Install lint dependencies
         run: uv sync --only-group lint
       - name: Run prek
@@ -371,7 +377,9 @@ jobs:
           persist-credentials: false
       - uses: astral-sh/setup-uv@v5
       - name: Set up Python
-        run: uv python install "$(tr -d '\n' < .python-version)"
+        run: |
+          default_python=$(test -f .python-version && tr -d '\n' < .python-version || echo '3.12')
+          uv python install "${default_python}"
       - run: uv sync
       - name: List locked packages
         run: uv tree --depth 1
