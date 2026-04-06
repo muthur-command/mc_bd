@@ -10,6 +10,7 @@ import warnings
 
 import pytest
 
+from tests.helpers.fastapi_testing import ensure_rate_limiter_patched_for_tests
 from tests.helpers.paths import backend_dotenv_path
 
 
@@ -32,3 +33,7 @@ def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item
     for item in items:
         if 'integration' in item.keywords:
             item.add_marker(skip_int)
+
+
+# 须在子目录 conftest 导入带 RateLimiter 的路由之前生效（见 fastapi_testing 文档字符串）
+ensure_rate_limiter_patched_for_tests()

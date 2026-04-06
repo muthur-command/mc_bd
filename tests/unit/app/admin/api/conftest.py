@@ -17,10 +17,7 @@ from backend.app.admin.api.router import v1 as admin_v1
 from backend.database.db import get_db, get_db_transaction
 from backend.middleware.jwt_auth_middleware import JwtAuthMiddleware
 from tests.helpers.admin_test_user import default_admin_jwt_user
-from tests.helpers.fastapi_testing import (
-    noop_rate_limiter_call,
-    starlette_test_client,
-)
+from tests.helpers.fastapi_testing import starlette_test_client
 
 if TYPE_CHECKING:
     from collections.abc import Generator
@@ -67,12 +64,6 @@ def admin_client(admin_api_app: FastAPI) -> Generator[TestClient, None, None]:
 @pytest.fixture
 def auth_headers(bearer_headers_admin_api: dict[str, str]) -> dict[str, str]:
     return bearer_headers_admin_api
-
-
-@pytest.fixture(autouse=True)
-def _noop_rate_limiter() -> Generator[None, None, None]:
-    with noop_rate_limiter_call():
-        yield
 
 
 @pytest.fixture(autouse=True)

@@ -146,6 +146,8 @@ ignore = [
 max-complexity = 12
 
 [lint.per-file-ignores]
+# RateLimiter 桩需要运行期注解；TC002 会改成 TYPE_CHECKING 导致单测 422
+"tests/helpers/fastapi_testing.py" = ["TC002"]
 "**/model/*.py" = ["TC003"]
 "backend/common/socketio/server.py" = ["ANN001"]
 "backend/common/exception/exception_handler.py" = ["ANN202", "RUF029"]

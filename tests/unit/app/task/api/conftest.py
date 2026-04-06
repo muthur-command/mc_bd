@@ -6,12 +6,15 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-from backend.app.task.api.router import v1 as task_v1
 from tests.helpers.fastapi_testing import (
     build_app_with_pagination_and_mock_db,
-    noop_rate_limiter_call,
+    ensure_rate_limiter_patched_for_tests,
     starlette_test_client,
 )
+
+ensure_rate_limiter_patched_for_tests()
+
+from backend.app.task.api.router import v1 as task_v1  # noqa: E402
 
 if TYPE_CHECKING:
     from collections.abc import Generator
@@ -38,9 +41,3 @@ def task_client(task_api_app: FastAPI) -> Generator[TestClient, None, None]:
 @pytest.fixture
 def task_auth_headers(bearer_headers_task_api: dict[str, str]) -> dict[str, str]:
     return bearer_headers_task_api
-
-
-@pytest.fixture(autouse=True)
-def _noop_rate_limiter_for_task_api() -> Generator[None, None, None]:
-    with noop_rate_limiter_call():
-        yield

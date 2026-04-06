@@ -14,9 +14,12 @@ from starlette_context.plugins import RequestIdPlugin
 
 from backend.database.db import get_db, get_db_transaction
 from backend.middleware.jwt_auth_middleware import JwtAuthMiddleware
-from backend.plugin.oauth2.api.router import v1 as oauth2_v1
 from tests.helpers.admin_test_user import default_admin_jwt_user
-from tests.helpers.fastapi_testing import noop_rate_limiter_call, starlette_test_client
+from tests.helpers.fastapi_testing import ensure_rate_limiter_patched_for_tests, starlette_test_client
+
+ensure_rate_limiter_patched_for_tests()
+
+from backend.plugin.oauth2.api.router import v1 as oauth2_v1  # noqa: E402
 
 if TYPE_CHECKING:
     from collections.abc import Generator
@@ -58,12 +61,6 @@ def oauth2_api_client(oauth2_api_app: FastAPI) -> Generator[TestClient, None, No
 @pytest.fixture
 def oauth2_auth_headers(bearer_headers_admin_api: dict[str, str]) -> dict[str, str]:
     return bearer_headers_admin_api
-
-
-@pytest.fixture(autouse=True)
-def _oauth2_noop_rate_limiter() -> Generator[None, None, None]:
-    with noop_rate_limiter_call():
-        yield
 
 
 @pytest.fixture(autouse=True)
