@@ -4,7 +4,8 @@ ARG SERVER_TYPE=mc_server
 # === Python environment from uv ===
 FROM ghcr.io/astral-sh/uv:python3.10-bookworm-slim AS builder
 
-# Used for build Python packages
+# Used for build Python packages (DL3008: pinning every .deb revision is brittle for this image)
+# hadolint ignore=DL3008
 RUN sed -i 's/deb.debian.org/mirrors.ustc.edu.cn/g' /etc/apt/sources.list.d/debian.sources \
     && apt-get update \
     && apt-get install -y --no-install-recommends gcc python3-dev \
@@ -29,6 +30,7 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 # === Runtime base server image ===
 FROM python:3.10-slim-bookworm AS base_server
 
+# hadolint ignore=DL3008
 RUN sed -i 's/deb.debian.org/mirrors.ustc.edu.cn/g' /etc/apt/sources.list.d/debian.sources \
     && apt-get update \
     && apt-get install -y --no-install-recommends curl ca-certificates supervisor \
@@ -87,5 +89,6 @@ EXPOSE 8555
 
 CMD ["supervisord", "-c", "/etc/supervisor/supervisord.conf"]
 
-# Build image
+# Build image (${SERVER_TYPE} is a local stage name, e.g. mc_server — not an untagged registry image)
+# hadolint ignore=DL3006
 FROM ${SERVER_TYPE}
