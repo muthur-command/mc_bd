@@ -1,0 +1,6 @@
+# MC Backend machine image — QEMU aarch64。
+ARG BUILD_FROM=ghcr.io/muthur-command/aarch64-mc:latest
+FROM ${BUILD_FROM}
+
+LABEL io.mc.machine="qemuarm-64"
+LABEL org.opencontainers.image.description="MC Backend for qemuarm-64"

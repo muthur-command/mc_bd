@@ -1,0 +1,9 @@
+# MC Backend machine image — Neardi Pi 3，aarch64，基于与 arch-mc 一致的运行时。
+ARG BUILD_FROM=ghcr.io/muthur-command/aarch64-mc:latest
+FROM ${BUILD_FROM}
+
+# 按需增加板级依赖（GPIO、编解码等）：
+# RUN apt-get update && apt-get install -y --no-install-recommends ...
+
+LABEL io.mc.machine="neardi-pi-3"
+LABEL org.opencontainers.image.description="MC Backend for neardi-pi-3"

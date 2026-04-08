@@ -1,0 +1,11 @@
+# MC Backend machine image — generic x86_64（amd64）。
+ARG BUILD_FROM=ghcr.io/muthur-command/amd64-mc:latest
+FROM ${BUILD_FROM}
+
+# hadolint ignore=DL3008
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends libva-intel-driver \
+    && rm -rf /var/lib/apt/lists/*
+
+LABEL io.mc.machine="generic-x86-64"
+LABEL org.opencontainers.image.description="MC Backend for generic-x86-64"

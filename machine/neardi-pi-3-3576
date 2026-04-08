@@ -1,9 +1,0 @@
-# MC Backend machine image — Neardi Pi 3 (RK3576)，基于 Debian 运行时（与 amd64/aarch64-mc 一致）。
-ARG BUILD_FROM=ghcr.io/example/aarch64-mc:latest
-FROM ${BUILD_FROM}
-
-# 按需增加板级依赖（GPIO、编解码等）：
-# RUN apt-get update && apt-get install -y --no-install-recommends ...
-
-LABEL io.mc.machine="neardi-pi-3-3576"
-LABEL org.opencontainers.image.description="MC Backend for neardi-pi-3-3576"

@@ -1,5 +1,3 @@
-# 可选 Secrets：DOCKERHUB_USERNAME、DOCKERHUB_TOKEN、GIT_NAME、GIT_EMAIL、GIT_TOKEN（仅 publish_mc 推送版本元数据时）。
----
 name: Build images
 
 # yamllint disable-line rule:truthy
@@ -11,13 +9,13 @@ on:
     - cron: "0 2 * * *"
 
 env:
-  BUILD_TYPE: mc
+  BUILD_TYPE: mc_bd
   PIP_TIMEOUT: 60
   UV_HTTP_TIMEOUT: 60
   UV_SYSTEM_PYTHON: "true"
-  BASE_IMAGE_VERSION: "mc-bookworm"
+  # Base image version from https://github.com/muthur-command/docker
+  BASE_IMAGE_VERSION: "mc_2026.04.0"
   ARCHITECTURES: '["amd64", "aarch64"]'
-  MC_META_IMAGE_NAME: mc
 
 permissions: {}
 
@@ -28,13 +26,14 @@ concurrency:
 jobs:
   init:
     name: Initialize build
+    if: github.repository_owner == 'muthur-command'
     runs-on: ubuntu-latest
     permissions:
-      contents: read
+      contents: read # To check out the repository
     outputs:
-      version: ${{ steps.mc_version.outputs.version }}
-      channel: ${{ steps.mc_version.outputs.channel }}
-      publish: ${{ steps.mc_version.outputs.publish }}
+      version: ${{ steps.version.outputs.version }}
+      channel: ${{ steps.version.outputs.channel }}
+      publish: ${{ steps.version.outputs.publish }}
       architectures: ${{ env.ARCHITECTURES }}
       base_image_version: ${{ env.BASE_IMAGE_VERSION }}
     steps:
@@ -48,74 +47,54 @@ jobs:
         with:
           python-version-file: ".python-version"
 
-      - name: Install packaging (version parse)
-        run: pip install packaging
+      - name: Get information
+        id: info
+        uses: muthur-command/actions/helpers/info@mc # zizmor: ignore[unpinned-uses]
 
-      - name: Get MC version and channel from pyproject.toml
-        id: mc_version
-        shell: bash
-        run: |
-          set -euo pipefail
-          OUT="$GITHUB_OUTPUT"
-          python3 <<'PY'
-          from __future__ import annotations
-
-          import os
-          import tomllib
-          from pathlib import Path
-
-          from packaging.version import Version
-
-          with open("pyproject.toml", "rb") as f:
-              raw = tomllib.load(f)["project"]["version"]
-          v = Version(raw)
-          if v.is_devrelease:
-              channel = "dev"
-              publish = "false"
-          elif v.is_prerelease:
-              channel = "beta"
-              publish = "true"
-          else:
-              channel = "stable"
-              publish = "true"
-          out = os.environ["GITHUB_OUTPUT"]
-          with open(out, "a", encoding="utf-8") as fh:
-              fh.write(f"version={v}\n")
-              fh.write(f"channel={channel}\n")
-              fh.write(f"publish={publish}\n")
-          PY
-
-      - name: Verify version string is non-empty
-        shell: bash
-        env:
-          V: ${{ steps.mc_version.outputs.version }}
-        run: test -n "${V}"
-
-      - name: Skip checked-in i18n JSON guard (mc_bd)
-        run: echo "MC：无 backend/locale/*/translations 目录检查。"
-
-      - name: Prepare translations artifact (MC placeholder)
-        shell: bash
-        run: |
-          mkdir -p .mc_translations_stub
-          echo '{}' > .mc_translations_stub/.gitkeep
-          tar czvf translations.tar.gz .mc_translations_stub
-
-      - name: Upload translations
-        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+      - name: Get version
+        id: version
+        uses: muthur-command/actions/helpers/version@mc # zizmor: ignore[unpinned-uses]
         with:
-          name: translations
-          path: translations.tar.gz
-          if-no-files-found: error
+          type: ${{ env.BUILD_TYPE }}
+
+      - name: Verify version
+        uses: muthur-command/actions/helpers/verify-version@mc # zizmor: ignore[unpinned-uses]
+        with:
+          ignore-dev: true
+
+      # - name: Fail if translations files are checked in
+      #   run: |
+      #     if [ -n "$(find backend/locale/*/translations -type f)" ]; then
+      #         echo "Translations files are checked in, please remove the following files:"
+      #         find backend/locale/*/translations -type f
+      #         exit 1
+      #     fi
+
+      # - name: Download Translations
+      #   run: python3 -m script.translations download
+      #   env:
+      #     LOKALISE_TOKEN: ${{ secrets.LOKALISE_TOKEN }} # zizmor: ignore[secrets-outside-env]
+
+      # - name: Archive translations
+      #   shell: bash
+      #   run: find backend/locale/*/translations -name "*.json" | tar zcvf translations.tar.gz -T -
+
+      # - name: Upload translations
+      #   uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+      #   with:
+      #     name: translations
+      #     path: translations.tar.gz
+      #     if-no-files-found: error
 
   build_base:
-    name: Build ${{ matrix.arch }} base MC image
+    name: Build ${{ matrix.arch }} base mc_bd image
+    if: github.repository_owner == 'muthur-command'
     needs: init
     runs-on: ${{ matrix.os }}
     permissions:
-      contents: read
-      packages: write
-      id-token: write
+      contents: read # To check out the repository
+      packages: write # To push to GHCR
+      id-token: write # For cosign signing
     strategy:
       fail-fast: false
       matrix:
@@ -123,81 +102,142 @@ jobs:
         include:
           - arch: amd64
             os: ubuntu-24.04
-            platform: linux/amd64
           - arch: aarch64
             os: ubuntu-24.04-arm
-            platform: linux/arm64
     steps:
       - name: Checkout the repository
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           persist-credentials: false
 
-      - name: Download translations
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+      - name: Download nightly wheels of frontend
+        if: needs.init.outputs.channel == 'dev'
+        uses: dawidd6/action-download-artifact@8a338493df3d275e4a7a63bcff3b8fe97e51a927 # v19
         with:
-          name: translations
+          github_token: ${{secrets.GITHUB_TOKEN}}
+          repo: muthur-command/frontend
+          branch: dev
+          workflow: nightly.yaml
+          workflow_conclusion: success
+          name: wheels
 
-      - name: Extract translations
+      - name: Download nightly wheels of intents
+        if: needs.init.outputs.channel == 'dev'
+        uses: dawidd6/action-download-artifact@8a338493df3d275e4a7a63bcff3b8fe97e51a927 # v19
+        with:
+          github_token: ${{secrets.GITHUB_TOKEN}}
+          repo: OHF-Voice/intents-package
+          branch: main
+          workflow: nightly.yaml
+          workflow_conclusion: success
+          name: package
+
+      - name: Set up Python
+        if: needs.init.outputs.channel == 'dev'
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version-file: ".python-version"
+
+      - name: Adjust nightly version
+        if: needs.init.outputs.channel == 'dev'
+        shell: bash
+        env:
+          UV_PRERELEASE: allow
+          VERSION: ${{ needs.init.outputs.version }}
         run: |
-          tar xvf translations.tar.gz
-          rm translations.tar.gz
+          python3 -m pip install "$(grep '^uv' < requirements.txt)"
+          uv pip install packaging tomli
+          uv pip install .
+          python3 script/version_bump.py nightly --set-nightly-version "${VERSION}"
+
+          if [[ "$(ls mc_frontend*.whl)" =~ ^mc_frontend-(.*)-py3-none-any.whl$ ]]; then
+            echo "Found frontend wheel, setting version to: ${BASH_REMATCH[1]}"
+            frontend_version="${BASH_REMATCH[1]}" yq \
+              --inplace e -o json \
+              '.requirements = ["muthur-command-frontend=="+env(frontend_version)]' \
+              mc/components/frontend/manifest.json
+
+            sed -i "s|muthur-command-frontend==.*|muthur-command-frontend==${BASH_REMATCH[1]}|" \
+              mc/package_constraints.txt
+
+            sed -i "s|muthur-command-frontend==.*||" requirements_all.txt
+          fi
+
+          if [[ "$(ls mc_intents*.whl)" =~ ^mc_intents-(.*)-py3-none-any.whl$ ]]; then
+            echo "Found intents wheel, setting version to: ${BASH_REMATCH[1]}"
+            yq \
+              --inplace e -o json \
+              'del(.requirements[] | select(contains("muthur-command-intents")))' \
+              mc/components/conversation/manifest.json
+
+            intents_version="${BASH_REMATCH[1]}" yq \
+              --inplace e -o json \
+              '.requirements += ["muthur-command-intents=="+env(intents_version)]' \
+              mc/components/conversation/manifest.json
+
+            sed -i "s|muthur-command-intents==.*|muthur-command-intents==${BASH_REMATCH[1]}|" \
+              mc/package_constraints.txt
+
+            sed -i "s|muthur-command-intents==.*||" requirements_all.txt requirements.txt
+          fi
+
+      # - name: Download translations
+      #   uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+      #   with:
+      #     name: translations
+
+      # - name: Extract translations
+      #   run: |
+      #     tar xvf translations.tar.gz
+      #     rm translations.tar.gz
 
       - name: Write meta info file
         shell: bash
         run: |
-          mkdir -p rootfs
           echo "${GITHUB_SHA};${GITHUB_REF};${GITHUB_EVENT_NAME};${GITHUB_ACTOR}" > rootfs/OFFICIAL_IMAGE
 
-      - name: Install Cosign
-        uses: sigstore/cosign-installer@ba7bc0a3fef59531c69a25acd34668d6d3fe6f22 # v4.1.0
+      - name: Build base image
+        uses: muthur-command/builder/actions/build-image@mc_2026.04.0
         with:
-          cosign-release: "v2.5.3"
-
-      - name: Login to GitHub Container Registry
-        uses: docker/login-action@b45d80f862d83dbcd57f89517bcf500b2ab88fb2 # v4.0.0
-        with:
-          registry: ghcr.io
-          username: ${{ github.repository_owner }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd # v3.7.1
-
-      - name: Build and push ${{ matrix.arch }}-mc
-        id: build
-        uses: docker/build-push-action@d08e5c354a6adb9ed34480a06d141179aa583294 # v7.0.0
-        with:
-          context: .
-          file: Dockerfile
+          arch: ${{ matrix.arch }}
+          build-args: |
+            BUILD_FROM=ghcr.io/muthur-command/${{ matrix.arch }}-muthur-command-base:${{ needs.init.outputs.base_image_version }}
+          cache-gha: false
+          container-registry-password: ${{ secrets.GITHUB_TOKEN }}
+          cosign-base-identity: "https://github.com/muthur-command/docker/.*"
+          cosign-base-verify: ghcr.io/muthur-command/${{ matrix.arch }}-muthur-command-base:${{ needs.init.outputs.base_image_version }}
+          image: ghcr.io/muthur-command/${{ matrix.arch }}-muthur-command
+          image-tags: ${{ needs.init.outputs.version }}
           push: true
-          platforms: ${{ matrix.platform }}
-          build-args: SERVER_TYPE=mc_server
-          tags: ghcr.io/${{ github.repository_owner }}/${{ matrix.arch }}-mc:${{ needs.init.outputs.version }}
-
-      - name: Sign architecture image
-        env:
-          DIGEST: ${{ steps.build.outputs.digest }}
-          IMAGE: ghcr.io/${{ github.repository_owner }}/${{ matrix.arch }}-mc:${{ needs.init.outputs.version }}
-        run: cosign sign --yes "${IMAGE}@${DIGEST}"
+          version: ${{ needs.init.outputs.version }}
 
   build_machine:
-    name: Build ${{ matrix.machine }} machine MC image
+    name: Build ${{ matrix.machine }} machine mc_bd image
+    if: github.repository_owner == 'muthur-command'
     needs: ["init", "build_base"]
     runs-on: ${{ matrix.runs-on }}
     permissions:
-      contents: read
-      packages: write
-      id-token: write
+      contents: read # To check out the repository
+      packages: write # To push to GHCR
+      id-token: write # For cosign signing
     strategy:
-      fail-fast: false
       matrix:
         machine:
-          - neardi-pi-3-3576
+          - generic-x86-64
+          - qemuarm-64
+          - qemux86-64
+          - neardi-pi-3
         include:
-          - machine: neardi-pi-3-3576
-            arch: aarch64
+          # Default: aarch64 on native ARM runner
+          - arch: aarch64
             runs-on: ubuntu-24.04-arm
+          # Overrides for amd64 machines
+          - machine: generic-x86-64
+            arch: amd64
+            runs-on: ubuntu-24.04
+          - machine: qemux86-64
+            arch: amd64
+            runs-on: ubuntu-24.04
     steps:
       - name: Checkout the repository
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
@@ -218,104 +258,92 @@ jobs:
             echo "extra_tags=stable" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Install Cosign
-        uses: sigstore/cosign-installer@ba7bc0a3fef59531c69a25acd34668d6d3fe6f22 # v4.1.0
+      - name: Build machine image
+        uses: muthur-command/builder/actions/build-image@mc_2026.04.0
         with:
-          cosign-release: "v2.5.3"
-
-      - name: Login to GitHub Container Registry
-        uses: docker/login-action@b45d80f862d83dbcd57f89517bcf500b2ab88fb2 # v4.0.0
-        with:
-          registry: ghcr.io
-          username: ${{ github.repository_owner }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd # v3.7.1
-
-      - name: Build and push machine image
-        id: machine_build
-        uses: docker/build-push-action@d08e5c354a6adb9ed34480a06d141179aa583294 # v7.0.0
-        with:
-          context: machine
-          file: ${{ matrix.machine }}
-          push: true
-          platforms: linux/arm64
+          arch: ${{ matrix.arch }}
           build-args: |
-            BUILD_FROM=ghcr.io/${{ github.repository_owner }}/${{ matrix.arch }}-mc:${{ needs.init.outputs.version }}
-          tags: |
-            ghcr.io/${{ github.repository_owner }}/${{ matrix.machine }}-mc:${{ needs.init.outputs.version }}
-            ghcr.io/${{ github.repository_owner }}/${{ matrix.machine }}-mc:${{ steps.tags.outputs.extra_tags }}
-
-      - name: Sign machine image (version tag)
-        env:
-          DIGEST: ${{ steps.machine_build.outputs.digest }}
-          IMAGE: ghcr.io/${{ github.repository_owner }}/${{ matrix.machine }}-mc:${{ needs.init.outputs.version }}
-        run: cosign sign --yes "${IMAGE}@${DIGEST}"
+            BUILD_FROM=ghcr.io/muthur-command/${{ matrix.arch }}-muthur-command:${{ needs.init.outputs.version }}
+          cache-gha: false
+          container-registry-password: ${{ secrets.GITHUB_TOKEN }}
+          context: machine/
+          cosign-base-identity: "https://github.com/muthur-command/mc_bd/.*"
+          cosign-base-verify: ghcr.io/muthur-command/${{ matrix.arch }}-muthur-command:${{ needs.init.outputs.version }}
+          file: machine/${{ matrix.machine }}
+          image: ghcr.io/muthur-command/${{ matrix.machine }}-muthur-command
+          image-tags: |
+            ${{ needs.init.outputs.version }}
+            ${{ steps.tags.outputs.extra_tags }}
+          push: true
+          version: ${{ needs.init.outputs.version }}
 
   publish_mc:
-    name: Publish MC version metadata
+    name: Publish version files
     environment: ${{ needs.init.outputs.channel }}
+    if: github.repository_owner == 'muthur-command'
     needs: ["init", "build_machine"]
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      actions: write
     steps:
       - name: Checkout the repository
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           persist-credentials: false
 
-      - name: Write version metadata (MC)
-        shell: bash
-        env:
-          VERSION: ${{ needs.init.outputs.version }}
-          CHANNEL: ${{ needs.init.outputs.channel }}
-          PUBLISH: ${{ needs.init.outputs.publish }}
-        run: |
-          mkdir -p dist-mc-version
-          {
-            echo "{\"version\":\"${VERSION}\",\"channel\":\"${CHANNEL}\",\"publish\":${PUBLISH},\"machine\":\"neardi-pi-3-3576\"}"
-          } > dist-mc-version/mc-version.json
-          cat dist-mc-version/mc-version.json
-
-      - name: Upload MC version artifact
-        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+      - name: Initialize git
+        uses: muthur-command/actions/helpers/git-init@mc # zizmor: ignore[unpinned-uses]
         with:
-          name: mc-version-metadata
-          path: dist-mc-version/
-          overwrite: true
+          name: ${{ secrets.GIT_NAME }}
+          email: ${{ secrets.GIT_EMAIL }}
+          token: ${{ secrets.GIT_TOKEN }}
 
-      - name: Optional — push to external version repo (对齐 core publish_ha)
-        if: ${{ secrets.MC_GIT_TOKEN != '' }}
-        shell: bash
-        env:
-          MC_GIT_TOKEN: ${{ secrets.MC_GIT_TOKEN }}
-          MC_GIT_NAME: ${{ secrets.MC_GIT_NAME }}
-          MC_GIT_EMAIL: ${{ secrets.MC_GIT_EMAIL }}
-          MC_VERSION_REMOTE: ${{ vars.MC_VERSION_REMOTE }}
-        run: |
-          echo "若已设置 secrets.MC_GIT_TOKEN 与 vars.MC_VERSION_REMOTE，可在此克隆版本仓库并推送 JSON。"
-          echo "当前为占位；请按组织流程实现 version-push。"
+      - name: Update version file
+        uses: muthur-command/actions/helpers/version-push@mc # zizmor: ignore[unpinned-uses]
+        with:
+          key: "mc[]"
+          key-description: "Muthur Command mc_bd"
+          version: ${{ needs.init.outputs.version }}
+          channel: ${{ needs.init.outputs.channel }}
+          exclude-list: '["qemuarm","qemux86"]'
 
-  # Docker Hub 多架构镜像：对齐 core 时可复制本 job，将 REGISTRY_ROOT 改为 docker.io/<命名空间> 并配置 DOCKERHUB_* secrets。
+      - name: Update version file (stable -> beta)
+        if: needs.init.outputs.channel == 'stable'
+        uses: muthur-command/actions/helpers/version-push@mc # zizmor: ignore[unpinned-uses]
+        with:
+          key: "mc[]"
+          key-description: "Muthur Command mc_bd"
+          version: ${{ needs.init.outputs.version }}
+          channel: beta
+          exclude-list: '["qemuarm","qemux86"]'
+
   publish_container:
-    name: Publish meta container (GHCR)
+    name: Publish meta container for ${{ matrix.registry }}
     environment: ${{ needs.init.outputs.channel }}
+    if: github.repository_owner == 'muthur-command'
     needs: ["init", "build_base"]
     runs-on: ubuntu-latest
     permissions:
-      contents: read
-      packages: write
-      id-token: write
-    env:
-      REGISTRY_ROOT: ghcr.io/${{ github.repository_owner }}
+      contents: read # To check out the repository
+      packages: write # To push to GHCR
+      id-token: write # For cosign signing
+    strategy:
+      fail-fast: false
+      matrix:
+        # registry: ["ghcr.io/muthur-command", "docker.io/muthur-command"]
+        registry: ["ghcr.io/muthur-command"]
     steps:
       - name: Install Cosign
         uses: sigstore/cosign-installer@ba7bc0a3fef59531c69a25acd34668d6d3fe6f22 # v4.1.0
         with:
           cosign-release: "v2.5.3"
+
+      # - name: Login to DockerHub
+      #   if: matrix.registry == 'docker.io/muthur-command'
+      #   uses: docker/login-action@b45d80f862d83dbcd57f89517bcf500b2ab88fb2 # v4.0.0
+      #   with:
+      #     username: ${{ secrets.DOCKERHUB_USERNAME }}
+      #     password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Login to GitHub Container Registry
         uses: docker/login-action@b45d80f862d83dbcd57f89517bcf500b2ab88fb2 # v4.0.0
@@ -335,16 +363,22 @@ jobs:
             echo "Verifying ${arch} image signature..."
             cosign verify \
               --certificate-oidc-issuer https://token.actions.githubusercontent.com \
-              --certificate-identity-regexp "https://github.com/${{ github.repository }}/.*" \
-              "ghcr.io/${{ github.repository_owner }}/${arch}-mc:${VERSION}"
+              --certificate-identity-regexp https://github.com/muthur-command/mc_bd/.* \
+              "ghcr.io/muthur-command/${arch}-muthur-command:${VERSION}"
           done
           echo "✓ All images verified successfully"
 
+      # Generate all Docker tags based on version string
+      # Version format: YYYY.MM.PATCH, YYYY.MM.PATCHbN (beta), or YYYY.MM.PATCH.devYYYYMMDDHHMM (dev)
+      # Examples:
+      #   2025.12.1     (stable)    -> tags: 2025.12.1, 2025.12, stable, latest, beta, rc
+      #   2025.12.0b3   (beta)      -> tags: 2025.12.0b3, beta, rc
+      #   2025.12.0.dev202511250240 -> tags: 2025.12.0.dev202511250240, dev
       - name: Generate Docker metadata
         id: meta
         uses: docker/metadata-action@030e881283bb7a6894de51c315a6bfe6a94e05cf # v6.0.0
         with:
-          images: ${{ env.REGISTRY_ROOT }}/${{ env.MC_META_IMAGE_NAME }}
+          images: ${{ matrix.registry }}/muthur-command
           sep-tags: ","
           tags: |
             type=raw,value=${{ needs.init.outputs.version }},priority=9999
@@ -358,53 +392,88 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd # v3.7.1
 
+      # Docker Hub: copy per-arch images from GHCR and sign (disabled — GHCR only)
+      # - name: Copy architecture images to DockerHub
+      #   if: matrix.registry == 'docker.io/muthur-command'
+      #   shell: bash
+      #   env:
+      #     ARCHITECTURES: ${{ needs.init.outputs.architectures }}
+      #     VERSION: ${{ needs.init.outputs.version }}
+      #   run: |
+      #     ARCHS=$(echo "${ARCHITECTURES}" | jq -r '.[]')
+      #     for arch in $ARCHS; do
+      #       echo "Copying ${arch} image to DockerHub..."
+      #       for attempt in 1 2 3; do
+      #         if docker buildx imagetools create \
+      #           --tag "docker.io/muthur-command/${arch}-muthur-command:${VERSION}" \
+      #           "ghcr.io/muthur-command/${arch}-muthur-command:${VERSION}"; then
+      #           break
+      #         fi
+      #         echo "Attempt ${attempt} failed, retrying in 10 seconds..."
+      #         sleep 10
+      #         if [ "${attempt}" -eq 3 ]; then
+      #           echo "Failed after 3 attempts"
+      #           exit 1
+      #         fi
+      #       done
+      #       cosign sign --yes "docker.io/muthur-command/${arch}-muthur-command:${VERSION}"
+      #     done
+
       - name: Create and push multi-arch manifests
         shell: bash
         env:
           ARCHITECTURES: ${{ needs.init.outputs.architectures }}
-          REGISTRY: ${{ env.REGISTRY_ROOT }}
+          REGISTRY: ${{ matrix.registry }}
           VERSION: ${{ needs.init.outputs.version }}
           META_TAGS: ${{ steps.meta.outputs.tags }}
         run: |
+          # Build list of architecture images dynamically
           ARCHS=$(echo "${ARCHITECTURES}" | jq -r '.[]')
           ARCH_IMAGES=()
           for arch in $ARCHS; do
-            ARCH_IMAGES+=("${REGISTRY}/${arch}-mc:${VERSION}")
+            ARCH_IMAGES+=("${REGISTRY}/${arch}-muthur-command:${VERSION}")
           done
+
+          # Build list of all tags for single manifest creation
+          # Note: Using sep-tags=',' in metadata-action for easier parsing
           TAG_ARGS=()
           IFS=',' read -ra TAGS <<< "${META_TAGS}"
           for tag in "${TAGS[@]}"; do
             TAG_ARGS+=("--tag" "${tag}")
           done
+
+          # Create manifest with ALL tags in a single operation (much faster!)
           echo "Creating multi-arch manifest with tags: ${TAGS[*]}"
           docker buildx imagetools create "${TAG_ARGS[@]}" "${ARCH_IMAGES[@]}"
+
+          # Sign each tag separately (signing requires individual tag names)
           echo "Signing all tags..."
           for tag in "${TAGS[@]}"; do
             echo "Signing ${tag}"
             cosign sign --yes "${tag}"
           done
+
           echo "All manifests created and signed successfully"
 
   build_python:
-    name: Build PyPI package
+    name: Build PyPi package
     environment: ${{ needs.init.outputs.channel }}
     needs: ["init", "build_base"]
     runs-on: ubuntu-latest
     permissions:
-      contents: read
-      id-token: write
-    if: needs.init.outputs.publish == 'true'
+      contents: read # To check out the repository
+      id-token: write # For PyPI trusted publishing
+    if: github.repository_owner == 'muthur-command' && needs.init.outputs.publish == 'true'
     steps:
       - name: Checkout the repository
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           persist-credentials: false
 
-      - name: Install uv
-        uses: astral-sh/setup-uv@v5
-
       - name: Set up Python
-        run: uv python install "$(tr -d '\n' < .python-version)"
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version-file: ".python-version"
 
       - name: Download translations
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
@@ -419,64 +488,12 @@ jobs:
       - name: Build package
         shell: bash
         run: |
-          uv pip install build
-          uv run python -m build
+          # Remove dist, build, and mc.egg-info
+          # when build locally for testing!
+          pip install build
+          python -m build
 
-      - name: Upload package to PyPI
-        uses: pypa/gh-action-pypi-publish@ed0c53931b1dc9bd32cbe73a98c7f6766f8a527e # v1.13.0
-        with:
-          skip-existing: true
-
-  mcfest-image:
-    name: Build and test mcfest image (MC)
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
-      attestations: write
-      id-token: write
-    needs: ["init"]
-    env:
-      MCFEST_IMAGE_NAME: ghcr.io/${{ github.repository_owner }}/mcfest
-      MCFEST_IMAGE_TAG: ghcr.io/${{ github.repository_owner }}/mcfest:${{ needs.init.outputs.version }}
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-        with:
-          persist-credentials: false
-
-      - name: Login to GitHub Container Registry
-        uses: docker/login-action@b45d80f862d83dbcd57f89517bcf500b2ab88fb2 # v4.0.0
-        with:
-          registry: ghcr.io
-          username: ${{ github.repository_owner }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Build Docker image
-        uses: docker/build-push-action@d08e5c354a6adb9ed34480a06d141179aa583294 # v7.0.0
-        with:
-          context: .
-          file: ./deploy/docker/mcfest/Dockerfile
-          load: true
-          tags: ${{ env.MCFEST_IMAGE_TAG }}
-
-      - name: Run mcfest against workspace
-        run: docker run --rm -v "${GITHUB_WORKSPACE}":/github/workspace ${{ env.MCFEST_IMAGE_TAG }} /github/workspace
-
-      - name: Push Docker image
-        if: needs.init.outputs.channel != 'dev' && needs.init.outputs.publish == 'true'
-        id: push
-        uses: docker/build-push-action@d08e5c354a6adb9ed34480a06d141179aa583294 # v7.0.0
-        with:
-          context: .
-          file: ./deploy/docker/mcfest/Dockerfile
-          push: true
-          tags: ${{ env.MCFEST_IMAGE_TAG }},${{ env.MCFEST_IMAGE_NAME }}:latest
-
-      - name: Generate artifact attestation
-        if: needs.init.outputs.channel != 'dev' && needs.init.outputs.publish == 'true'
-        uses: actions/attest@59d89421af93a897026c735860bf21b6eb4f7b26 # v4.1.0
-        with:
-          subject-name: ${{ env.MCFEST_IMAGE_NAME }}
-          subject-digest: ${{ steps.push.outputs.digest }}
-          push-to-registry: true
+      # - name: Upload package to PyPI
+      #   uses: pypa/gh-action-pypi-publish@ed0c53931b1dc9bd32cbe73a98c7f6766f8a527e # v1.13.0
+      #   with:
+      #     skip-existing: true
