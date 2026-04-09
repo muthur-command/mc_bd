@@ -194,6 +194,7 @@ jobs:
       - name: Write meta info file
         shell: bash
         run: |
+          mkdir -p rootfs
           echo "${GITHUB_SHA};${GITHUB_REF};${GITHUB_EVENT_NAME};${GITHUB_ACTOR}" > rootfs/OFFICIAL_IMAGE
 
       - name: Build base image
