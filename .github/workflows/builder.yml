@@ -204,6 +204,7 @@ jobs:
           build-args: |
             BUILD_FROM=ghcr.io/muthur-command/${{ matrix.arch }}-muthur-command-base:${{ needs.init.outputs.base_image_version }}
           cache-gha: false
+          container-registry-username: ${{ github.actor }}
           container-registry-password: ${{ secrets.GITHUB_TOKEN }}
           cosign-base-identity: "https://github.com/muthur-command/docker/.*"
           cosign-base-verify: ghcr.io/muthur-command/${{ matrix.arch }}-muthur-command-base:${{ needs.init.outputs.base_image_version }}
@@ -266,6 +267,7 @@ jobs:
           build-args: |
             BUILD_FROM=ghcr.io/muthur-command/${{ matrix.arch }}-muthur-command:${{ needs.init.outputs.version }}
           cache-gha: false
+          container-registry-username: ${{ github.actor }}
           container-registry-password: ${{ secrets.GITHUB_TOKEN }}
           context: machine/
           cosign-base-identity: "https://github.com/muthur-command/mc_bd/.*"
@@ -350,7 +352,7 @@ jobs:
         uses: docker/login-action@b45d80f862d83dbcd57f89517bcf500b2ab88fb2 # v4.0.0
         with:
           registry: ghcr.io
-          username: ${{ github.repository_owner }}
+          username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Verify architecture image signatures
