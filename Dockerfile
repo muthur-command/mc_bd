@@ -2,7 +2,7 @@
 ARG SERVER_TYPE=mc_server
 
 # === Python environment from uv ===
-FROM ghcr.io/astral-sh/uv:python3.10-bookworm-slim AS builder
+FROM ghcr.io/astral-sh/uv:python3.12-bookworm-slim AS builder
 
 # Used for build Python packages (DL3008: pinning every .deb revision is brittle for this image)
 # hadolint ignore=DL3008
@@ -28,7 +28,7 @@ RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --locked --no-default-groups --group server --no-install-project
 
 # === Runtime base server image ===
-FROM python:3.10-slim-bookworm AS base_server
+FROM python:3.12-slim-bookworm AS base_server
 
 # hadolint ignore=DL3008
 RUN sed -i 's/deb.debian.org/mirrors.ustc.edu.cn/g' /etc/apt/sources.list.d/debian.sources \
