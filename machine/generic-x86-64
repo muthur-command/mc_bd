@@ -3,8 +3,11 @@ ARG BUILD_FROM=ghcr.io/muthur-command/amd64-mc:latest
 FROM ${BUILD_FROM}
 
 # hadolint ignore=DL3008
+# Debian bookworm: no package libva-intel-driver; use i965 (legacy Intel) + intel-media (Gen8+).
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends libva-intel-driver \
+    && apt-get install -y --no-install-recommends \
+        i965-va-driver \
+        intel-media-va-driver \
     && rm -rf /var/lib/apt/lists/*
 
 LABEL io.mc.machine="generic-x86-64"
