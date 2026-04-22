@@ -1,0 +1,38 @@
+#!/bin/sh -e
+
+# This is the first program launched at container start.
+# Keep this script self-contained until PATH includes s6 binaries.
+
+addpath () {
+  x="$1"
+  IFS=:
+  set -- $PATH
+  IFS=
+  while test "$#" -gt 0 ; do
+    if test "$1" = "$x" ; then
+      return
+    fi
+    shift
+  done
+  PATH="${x}:$PATH"
+}
+
+if test -z "$PATH" ; then
+  PATH=/bin
+fi
+
+addpath /bin
+addpath /usr/bin
+addpath /command
+export PATH
+
+# If a command is passed, run it directly.
+if test $# -ne 0 ; then
+  exec "$@"
+fi
+
+exec s6-overlay-suexec \
+  ' /package/admin/s6-overlay/libexec/preinit' \
+  '' \
+  /package/admin/s6-overlay/libexec/stage0 \
+  "$@"

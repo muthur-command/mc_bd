@@ -1,0 +1,4 @@
+ARG BUILD_FROM=ghcr.io/home-assistant/aarch64-muthurcommand:latest
+FROM ${BUILD_FROM}
+
+LABEL io.mcio.machine="khadas-vim3"

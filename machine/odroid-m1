@@ -1,4 +1,4 @@
 ARG BUILD_FROM=ghcr.io/muthur-command/aarch64-muthurcommand:latest
 FROM ${BUILD_FROM}
 
-LABEL io.mcio.machine="qemuarm-64"
+LABEL io.mcio.machine="odroid-m1"

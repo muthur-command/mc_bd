@@ -1,6 +1,4 @@
-# MC Backend machine image — QEMU x86_64（amd64）。
-ARG BUILD_FROM=ghcr.io/muthur-command/amd64-mc:latest
+ARG BUILD_FROM=ghcr.io/muthur-command/amd64-muthurcommand:latest
 FROM ${BUILD_FROM}
 
-LABEL io.mc.machine="qemux86-64"
-LABEL org.opencontainers.image.description="MC Backend for qemux86-64"
+LABEL io.mcio.machine="qemux86-64"
