@@ -442,7 +442,7 @@ jobs:
         run: |
           python3 script/ci/split_test_buckets.py "${{ needs.info.outputs.test_group_count }}" > pytest_buckets.txt
           cat pytest_buckets.txt
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: pytest_buckets
           path: pytest_buckets.txt
@@ -520,21 +520,21 @@ jobs:
           uv run pytest -q --tb=short -m "not integration" \
             "${cov[@]}" \
             "${paths[@]}" 2>&1 | tee "pytest-${PYTHON_VERSION}-${TEST_GROUP}.txt" || exit "${PIPESTATUS[0]}"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: success() || failure()
         with:
           name: pytest-${{ github.run_number }}-${{ matrix.python-version }}-${{ matrix.group }}
           path: pytest-${{ matrix.python-version }}-${{ matrix.group }}.txt
           overwrite: true
           if-no-files-found: ignore
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: needs.info.outputs.skip_coverage != 'true'
         with:
           name: coverage-${{ matrix.python-version }}-${{ matrix.group }}
           path: coverage.xml
           overwrite: true
           if-no-files-found: ignore
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: needs.info.outputs.skip_coverage != 'true' && !cancelled()
         with:
           name: test-results-full-${{ matrix.python-version }}-${{ matrix.group }}
@@ -600,14 +600,14 @@ jobs:
           uv run pytest -q --tb=short -m "not integration" \
             "${cov[@]}" \
             "backend/plugin/${TEST_GROUP}/tests"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: needs.info.outputs.skip_coverage != 'true' && !cancelled()
         with:
           name: coverage-${{ matrix.python-version }}-${{ matrix.group }}
           path: coverage.xml
           overwrite: true
           if-no-files-found: ignore
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: needs.info.outputs.skip_coverage != 'true' && !cancelled()
         with:
           name: test-results-partial-${{ matrix.python-version }}-${{ matrix.group }}
