@@ -153,13 +153,13 @@ jobs:
         with:
           arch: ${{ matrix.arch }}
           build-args: |
-            BUILD_FROM=ghcr.io/muthur-command/${{ matrix.arch }}-muthur-command-base:${{ needs.init.outputs.base_image_version }}
+            BUILD_FROM=ghcr.io/muthur-command/${{ matrix.arch }}-muthurcommand-base:${{ needs.init.outputs.base_image_version }}
           cache-gha: false
           container-registry-username: ${{ github.actor }}
           container-registry-password: ${{ secrets.GITHUB_TOKEN }}
           cosign-base-identity: "https://github.com/muthur-command/docker/.*"
-          cosign-base-verify: ghcr.io/muthur-command/${{ matrix.arch }}-muthur-command-base:${{ needs.init.outputs.base_image_version }}
-          image: ghcr.io/muthur-command/${{ matrix.arch }}-muthur-command
+          cosign-base-verify: ghcr.io/muthur-command/${{ matrix.arch }}-muthurcommand-base:${{ needs.init.outputs.base_image_version }}
+          image: ghcr.io/muthur-command/${{ matrix.arch }}-muthurcommand
           image-tags: ${{ needs.init.outputs.version }}
           push: true
           version: ${{ needs.init.outputs.version }}
