@@ -1,0 +1,31 @@
+#!/command/with-contenv sh
+
+set -eu
+
+role="${APP_ROLE:-api}"
+
+case "${role}" in
+  api|mc_bd)
+    selected="api"
+    ;;
+  worker|mc_celery_worker)
+    selected="worker"
+    ;;
+  beat|mc_celery_beat)
+    selected="beat"
+    ;;
+  flower|mc_celery_flower)
+    selected="flower"
+    ;;
+  *)
+    echo "Unknown APP_ROLE: ${role}" >&2
+    exit 1
+    ;;
+esac
+
+for svc in api worker beat flower; do
+  touch "/etc/services.d/${svc}/down"
+done
+
+rm -f "/etc/services.d/${selected}/down"
+echo "Enabled s6 service role: ${selected}"

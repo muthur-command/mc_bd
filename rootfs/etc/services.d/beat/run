@@ -1,0 +1,8 @@
+#!/command/with-contenv sh
+
+set -eu
+
+cd /mc/backend
+
+exec /usr/local/bin/celery -A app.task.celery beat \
+  --loglevel="${CELERY_LOG_LEVEL:-INFO}"

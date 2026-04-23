@@ -1,5 +1,5 @@
-ARG SERVER_TYPE=mc_bd
-ARG BUILD_FROM=python:3.12-slim-bookworm
+ARG SERVER_TYPE=api
+ARG BUILD_FROM=python:3.12-alpine
 
 FROM ghcr.io/astral-sh/uv:python3.12-bookworm-slim AS builder
 
@@ -21,11 +21,12 @@ ENV UV_COMPILE_BYTECODE=1 \
 RUN --mount=type=cache,target=/root/.cache/uv \
     --mount=type=bind,source=uv.lock,target=uv.lock \
     --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
-    uv sync --locked --no-default-groups --group server --no-install-project
+    uv sync --locked --no-default-groups --group server --no-install-project \
+    && uv pip install gunicorn
 
 FROM ${BUILD_FROM}
 
-ARG SERVER_TYPE=mc_bd
+ARG SERVER_TYPE=api
 
 LABEL \
     io.mcio.type="mc_bd" \
@@ -39,14 +40,15 @@ ENV \
     UV_SYSTEM_PYTHON=true \
     UV_NO_CACHE=true \
     PYTHONDONTWRITEBYTECODE=1 \
-    MC_SERVICE_TYPE=${SERVER_TYPE}
+    APP_ROLE=${SERVER_TYPE}
 
 COPY rootfs /
 COPY --from=builder /mc /mc
 COPY --from=builder /usr/local /usr/local
 
-RUN mkdir -p /var/log/mc \
-    && chmod +x /init /etc/services.d/mc/run
+RUN chmod +x /init \
+    && find /etc/cont-init.d -type f -exec chmod +x {} \; \
+    && find /etc/services.d -name run -type f -exec chmod +x {} \;
 
 WORKDIR /mc/backend
 
