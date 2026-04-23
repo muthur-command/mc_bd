@@ -24,6 +24,8 @@ RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --locked --no-default-groups --group server --no-install-project \
     && uv pip install gunicorn
 
+# Runtime base image is passed as BUILD_FROM (pinned in builder.yml); default ARG uses an explicit tag.
+# hadolint ignore=DL3006
 FROM ${BUILD_FROM}
 
 ARG SERVER_TYPE=api

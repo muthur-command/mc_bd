@@ -238,7 +238,6 @@ jobs:
       - name: Run prek
         uses: j178/prek-action@53276d8b0d10f8b6672aa85b4588c6921d0370cc # v2.0.1
         env:
-          PREK_SKIP: no-commit-to-branch,mypy,pylint,gen_requirements_all
           RUFF_OUTPUT_FORMAT: github
 
   zizmor:

@@ -57,7 +57,11 @@ jobs:
         with:
           type: ${{ env.BUILD_TYPE }}
 
+      # verify-version compares pyproject project.version to the last segment of the ref:
+      # refs/heads/mc_bd -> mc_bd, which never equals e.g. 2026.5.0.dev0; ignore-dev only skips branch "dev".
+      # Run this check only on GitHub Releases so the tag name matches the released version.
       - name: Verify version
+        if: github.event_name == 'release'
         uses: muthur-command/actions/helpers/verify-version@mc # zizmor: ignore[unpinned-uses]
         with:
           ignore-dev: true
