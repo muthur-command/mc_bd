@@ -494,7 +494,7 @@ jobs:
         run: echo "::add-matcher::.github/workflows/matchers/python.json"
       - name: Register pytest slow test problem matcher
         run: echo "::add-matcher::.github/workflows/matchers/pytest-slow.json"
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: pytest_buckets
       - name: Run pytest
@@ -631,7 +631,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           pattern: coverage-*
           merge-multiple: true
@@ -657,7 +657,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           pattern: coverage-*
           merge-multiple: true
@@ -682,7 +682,7 @@ jobs:
       && needs.info.outputs.skip_coverage != 'true'
       && !cancelled()
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           pattern: test-results-full-*
           merge-multiple: true
@@ -709,7 +709,7 @@ jobs:
       && needs.info.outputs.skip_coverage != 'true'
       && !cancelled()
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           pattern: test-results-partial-*
           merge-multiple: true
