@@ -21,8 +21,7 @@ ENV UV_COMPILE_BYTECODE=1 \
 RUN --mount=type=cache,target=/root/.cache/uv \
     --mount=type=bind,source=uv.lock,target=uv.lock \
     --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
-    uv sync --locked --no-default-groups --group server --no-install-project \
-    && uv pip install gunicorn
+    uv sync --locked --no-default-groups --group server --no-install-project
 
 # Runtime base image is passed as BUILD_FROM (pinned in builder.yml); default ARG uses an explicit tag.
 # hadolint ignore=DL3006

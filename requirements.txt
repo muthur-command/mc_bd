@@ -122,6 +122,8 @@ greenlet==3.3.0
     # via
     #   gevent
     #   sqlalchemy
+gunicorn==25.3.0
+    # via muthur-command-backend
 h11==0.16.0
     # via
     #   httpcore
@@ -177,6 +179,7 @@ oauthlib==3.3.1
     # via requests-oauthlib
 packaging==26.0
     # via
+    #   gunicorn
     #   kombu
     #   pytest
 pillow==12.1.0

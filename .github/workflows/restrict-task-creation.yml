@@ -1,0 +1,113 @@
+name: Restrict task creation
+
+# yamllint disable-line rule:truthy
+on:
+  issues:
+    types: [opened]
+
+permissions: {}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.issue.number }}
+
+jobs:
+  add-no-stale:
+    name: Add no-stale label
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write # To add labels to issues
+    if: >-
+      github.repository_owner == 'muthur-command'
+      && (github.event.issue.type.name == 'Task'
+      || github.event.issue.type.name == 'Epic'
+      || github.event.issue.type.name == 'Opportunity')
+    steps:
+      - name: Add no-stale label
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
+        with:
+          script: |
+            await github.rest.issues.addLabels({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              labels: ['no-stale']
+            });
+
+  check-authorization:
+    name: Check authorization
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read # To read CODEOWNERS file
+      issues: write # To comment on, label, and close issues
+    if: >-
+      github.repository_owner == 'muthur-command'
+      && github.event.issue.type.name == 'Task'
+    steps:
+      - name: Check if user is authorized
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
+        env:
+          CODEOWNERS_REF: ${{ github.event.repository.default_branch }}
+        with:
+          script: |
+            const issueAuthor = context.payload.issue.user.login;
+            const codeownersRef = process.env.CODEOWNERS_REF || 'main';
+
+            // First check if user is an organization member
+            try {
+              await github.rest.orgs.checkMembershipForUser({
+                org: 'muthur-command',
+                username: issueAuthor
+              });
+              console.log(`✅ ${issueAuthor} is an organization member`);
+              return; // Authorized, no need to check further
+            } catch (error) {
+              console.log(`ℹ️ ${issueAuthor} is not an organization member, checking codeowners...`);
+            }
+
+            // If not an org member, check if they're a codeowner
+            try {
+              const { data: codeownersFile } = await github.rest.repos.getContent({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                path: 'CODEOWNERS',
+                ref: codeownersRef
+              });
+
+              const codeownersContent = Buffer.from(codeownersFile.content, 'base64').toString('utf-8');
+
+              if (codeownersContent.includes(`@${issueAuthor}`)) {
+                console.log(`✅ ${issueAuthor} is listed in CODEOWNERS`);
+                return; // Authorized
+              }
+            } catch (error) {
+              console.error('Error checking CODEOWNERS:', error);
+            }
+
+            console.log(`❌ ${issueAuthor} is not authorized to create Task issues`);
+
+            const repo = `${context.repo.owner}/${context.repo.repo}`;
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: `Hi @${issueAuthor}, thank you for your contribution!\n\n` +
+                    `Task issues are restricted to organization members and users listed in CODEOWNERS.\n\n` +
+                    `If you would like to:\n` +
+                    `- Report a bug or request a feature: please open a regular issue at ` +
+                    `[New issue](https://github.com/${repo}/issues/new)\n\n` +
+                    `If you believe you should have access to create Task issues, please contact the maintainers.`
+            });
+
+            await github.rest.issues.update({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              state: 'closed'
+            });
+
+            await github.rest.issues.addLabels({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              labels: ['auto-closed']
+            });
