@@ -1,0 +1,70 @@
+name: Release Drafter
+
+on:
+  push:
+    branches:
+      - mc_bd
+
+permissions:
+  contents: write
+  pull-requests: read
+
+jobs:
+  update_release_draft:
+    if: github.repository_owner == 'muthur-command'
+    runs-on: ubuntu-latest
+    name: Release Drafter
+    steps:
+      - name: Checkout the repository
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Find Next Version
+        id: version
+        run: |
+          set -eo pipefail
+          declare -i newpost
+          datepre=$(date --utc '+%Y.%m')
+
+          # No tags: first release is YYYY.MM.0; legacy tags may use mc_ prefix (stripped below).
+          latest=""
+          tag_sha=$(git rev-list --tags --max-count=1 2>/dev/null || true)
+          if [[ -n "$tag_sha" ]]; then
+            latest=$(git describe --tags --abbrev=0 "$tag_sha" 2>/dev/null) || latest=""
+          fi
+
+          if [[ -n "$latest" ]]; then
+            latest_normalized="${latest#mc_}"
+            latestpre=$(echo "$latest_normalized" | awk '{split($0,a,"."); print a[1] "." a[2]}')
+          else
+            latest_normalized=""
+            latestpre=""
+          fi
+
+          if [[ -n "$latestpre" && "$latestpre" == "$datepre" ]]; then
+            latestpost=$(echo "$latest_normalized" | awk '{split($0,a,"."); print a[3]}')
+            if [[ -z "${latestpost}" ]] || ! [[ "${latestpost}" =~ ^[0-9]+$ ]]; then
+              latestpost=0
+            fi
+            newpost=$((latestpost + 1))
+          else
+            newpost=0
+          fi
+
+          version_tag="${datepre}.${newpost}"
+          semver="${datepre}.${newpost}"
+          echo "Current version: ${latest:-<no tags>}"
+          echo "New target version: $version_tag (Release Drafter version: $semver)"
+          echo "version=$version_tag" >> "$GITHUB_OUTPUT"
+          echo "semver=$semver" >> "$GITHUB_OUTPUT"
+
+      - name: Run Release Drafter
+        uses: release-drafter/release-drafter@v7.2.0
+        with:
+          tag: ${{ steps.version.outputs.version }}
+          name: ${{ steps.version.outputs.version }}
+          version: ${{ steps.version.outputs.semver }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
