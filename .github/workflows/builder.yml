@@ -260,24 +260,25 @@ jobs:
           email: ${{ secrets.GIT_EMAIL }}
           token: ${{ secrets.GIT_TOKEN }}
 
+      # version JSON: top-level mc_bd string; key mc[] + exclude-list targets missing .mc object.
       - name: Update version file
         uses: muthur-command/actions/helpers/version-push@mc # zizmor: ignore[unpinned-uses]
         with:
-          key: "mc[]"
+          key: "mc_bd"
           key-description: "Muthur Command mc_bd"
           version: ${{ needs.init.outputs.version }}
           channel: ${{ needs.init.outputs.channel }}
-          exclude-list: '["qemuarm","qemux86"]'
+          exclude-list: "[]"
 
       - name: Update version file (stable -> beta)
         if: needs.init.outputs.channel == 'stable'
         uses: muthur-command/actions/helpers/version-push@mc # zizmor: ignore[unpinned-uses]
         with:
-          key: "mc[]"
+          key: "mc_bd"
           key-description: "Muthur Command mc_bd"
           version: ${{ needs.init.outputs.version }}
           channel: beta
-          exclude-list: '["qemuarm","qemux86"]'
+          exclude-list: "[]"
 
   publish_container:
     name: Publish meta container for ${{ matrix.registry }}
