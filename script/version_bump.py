@@ -97,10 +97,12 @@ def bump_version(  # noqa: C901
         new_dev = _utcnow_compact()
         if nightly_version:
             new_version = Version(nightly_version)
-            if new_version.release != version.release:
-                raise ValueError('Nightly version must have the same release version')
             if not new_version.is_devrelease:
                 raise ValueError('Nightly version must be a dev version')
+            # CI passes the canonical dev line (e.g. from version.json); const.py may lag
+            # on another YYYY.M.N — still stamp exactly what CI requested.
+            if new_version.release != version.release:
+                return new_version
             new_dev = new_version.dev
 
         if not isinstance(new_dev, int):
@@ -215,7 +217,9 @@ def main() -> None:
 
     current = read_version()
     bumped = bump_version(current, arguments.type, nightly_version=arguments.set_nightly_version)
-    assert bumped > current, 'BUG! New version is not newer than old version'
+    # --set-nightly-version is authoritative from CI; release may differ from const.py.
+    if not arguments.set_nightly_version:
+        assert bumped > current, 'BUG! New version is not newer than old version'
 
     write_version(bumped)
     write_version_metadata(bumped)
@@ -265,12 +269,11 @@ def test_bump_version(monkeypatch: Any) -> None:
     ) == Version('2024.4.0.dev202403271315')
     with pytest.raises(ValueError, match='Can only be run on dev release'):
         bump_version(Version('0.56.0'), 'nightly')
-    with pytest.raises(ValueError, match='Nightly version must have the same release version'):
-        bump_version(
-            Version('0.56.0.dev0'),
-            'nightly',
-            nightly_version='2024.4.0.dev202403271315',
-        )
+    assert bump_version(
+        Version('0.56.0.dev0'),
+        'nightly',
+        nightly_version='2024.4.0.dev202403271315',
+    ) == Version('2024.4.0.dev202403271315')
     with pytest.raises(ValueError, match='Nightly version must be a dev version'):
         bump_version(Version('0.56.0.dev0'), 'nightly', nightly_version='0.56.0')
 
