@@ -127,12 +127,8 @@ jobs:
           UV_PRERELEASE: allow
           VERSION: ${{ needs.init.outputs.version }}
         run: |
-          uv_requirement="$(awk -F'==' '$1=="uv"{print $0; exit}' requirements.txt)"
-          if [[ -z "${uv_requirement}" ]]; then
-            echo "Missing 'uv' requirement in requirements.txt"
-            exit 1
-          fi
-          python3 -m pip install "${uv_requirement}"
+          # requirements.txt is `uv export` output and does not list the uv tool itself.
+          python3 -m pip install uv
           uv pip install packaging tomli
           uv pip install .
           python3 script/version_bump.py nightly --set-nightly-version "${VERSION}"
