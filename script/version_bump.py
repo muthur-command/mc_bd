@@ -121,7 +121,7 @@ def read_version() -> Version:
     text = CONST_PATH.read_text(encoding='utf8')
     major_m = re.search(r'^MAJOR_VERSION:\s*Final\s*=\s*(\d+)\s*$', text, re.MULTILINE)
     minor_m = re.search(r'^MINOR_VERSION:\s*Final\s*=\s*(\d+)\s*$', text, re.MULTILINE)
-    patch_m = re.search(r'^PATCH_VERSION:\s*Final\s*=\s*"([^"]*)"', text, re.MULTILINE)
+    patch_m = re.search(r"^PATCH_VERSION:\s*Final\s*=\s*['\"]([^'\"]*)['\"]", text, re.MULTILINE)
     if not major_m or not minor_m or not patch_m:
         msg = f'Could not parse MAJOR/MINOR/PATCH from {CONST_PATH}'
         raise RuntimeError(msg)
