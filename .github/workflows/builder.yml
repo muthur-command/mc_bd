@@ -132,6 +132,8 @@ jobs:
           uv pip install packaging tomli
           uv pip install .
           python3 script/version_bump.py nightly --set-nightly-version "${VERSION}"
+          # Keep lockfile aligned with pyproject after nightly version mutation.
+          uv lock
 
       # - name: Download translations
       #   uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
