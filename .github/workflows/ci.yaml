@@ -236,7 +236,7 @@ jobs:
       - name: Install lint dependencies
         run: uv sync --only-group lint
       - name: Run prek
-        uses: j178/prek-action@53276d8b0d10f8b6672aa85b4588c6921d0370cc # v2.0.1
+        uses: j178/prek-action@6ad80277337ad479fe43bd70701c3f7f8aa74db3 # v2.0.3
         env:
           RUFF_OUTPUT_FORMAT: github
 
@@ -256,7 +256,7 @@ jobs:
           persist-credentials: false
       - name: Run zizmor
         continue-on-error: true
-        uses: j178/prek-action@53276d8b0d10f8b6672aa85b4588c6921d0370cc # v2.0.1
+        uses: j178/prek-action@6ad80277337ad479fe43bd70701c3f7f8aa74db3 # v2.0.3
         with:
           extra-args: --all-files zizmor
 
