@@ -61,7 +61,7 @@ jobs:
           echo "semver=$semver" >> "$GITHUB_OUTPUT"
 
       - name: Run Release Drafter
-        uses: release-drafter/release-drafter@v7.2.0
+        uses: release-drafter/release-drafter@v7.2.1
         with:
           tag: ${{ steps.version.outputs.version }}
           name: ${{ steps.version.outputs.version }}
