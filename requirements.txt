@@ -116,7 +116,7 @@ flower==2.0.1
     # via muthur-command-backend
 gevent==25.9.1
     # via muthur-command-backend
-granian==2.6.1
+granian==2.7.4
     # via muthur-command-backend
 greenlet==3.3.0
     # via
