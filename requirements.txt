@@ -161,7 +161,7 @@ kombu==5.6.2
     # via celery
 loguru==0.7.3
     # via muthur-command-backend
-mako==1.3.10
+mako==1.3.12
     # via alembic
 markdown==3.10.2
     # via apprise
