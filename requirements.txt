@@ -356,7 +356,7 @@ ua-parser==1.0.1
     # via user-agents
 ua-parser-builtins==202601
     # via ua-parser
-urllib3==2.6.3
+urllib3==2.7.0
     # via
     #   dulwich
     #   requests
