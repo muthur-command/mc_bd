@@ -13,10 +13,15 @@ RUN sed -i 's/deb.debian.org/mirrors.ustc.edu.cn/g' /etc/apt/sources.list.d/debi
 COPY . /mc
 WORKDIR /mc
 
+ARG UV_HTTP_TIMEOUT=180
+ARG UV_HTTP_RETRIES=5
+
 ENV UV_COMPILE_BYTECODE=1 \
     UV_NO_CACHE=1 \
     UV_LINK_MODE=copy \
-    UV_PROJECT_ENVIRONMENT=/usr/local
+    UV_PROJECT_ENVIRONMENT=/usr/local \
+    UV_HTTP_TIMEOUT=${UV_HTTP_TIMEOUT} \
+    UV_HTTP_RETRIES=${UV_HTTP_RETRIES}
 
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --locked --no-default-groups --group server --no-install-project
