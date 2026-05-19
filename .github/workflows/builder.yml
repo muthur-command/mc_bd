@@ -153,7 +153,7 @@ jobs:
           echo "${GITHUB_SHA};${GITHUB_REF};${GITHUB_EVENT_NAME};${GITHUB_ACTOR}" > rootfs/OFFICIAL_IMAGE
 
       - name: Build base image
-        uses: muthur-command/builder/actions/build-image@2026.04.2
+        uses: muthur-command/builder/actions/build-image@2026.05.0
         with:
           arch: ${{ matrix.arch }}
           build-args: |
@@ -226,7 +226,7 @@ jobs:
           fi
 
       - name: Build machine image
-        uses: muthur-command/builder/actions/build-image@2026.04.2
+        uses: muthur-command/builder/actions/build-image@2026.05.0
         with:
           arch: ${{ matrix.arch }}
           build-args: |
