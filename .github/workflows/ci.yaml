@@ -635,7 +635,7 @@ jobs:
         with:
           pattern: coverage-*
           merge-multiple: true
-      - uses: codecov/codecov-action@v6
+      - uses: codecov/codecov-action@v6.0.1
         with:
           fail_ci_if_error: false
           flags: full-suite
@@ -661,7 +661,7 @@ jobs:
         with:
           pattern: coverage-*
           merge-multiple: true
-      - uses: codecov/codecov-action@v6
+      - uses: codecov/codecov-action@v6.0.1
         with:
           fail_ci_if_error: false
           token: ${{ secrets.CODECOV_TOKEN }}
@@ -686,7 +686,7 @@ jobs:
         with:
           pattern: test-results-full-*
           merge-multiple: true
-      - uses: codecov/codecov-action@v6
+      - uses: codecov/codecov-action@v6.0.1
         with:
           report_type: test_results
           fail_ci_if_error: false
@@ -713,7 +713,7 @@ jobs:
         with:
           pattern: test-results-partial-*
           merge-multiple: true
-      - uses: codecov/codecov-action@v6
+      - uses: codecov/codecov-action@v6.0.1
         with:
           report_type: test_results
           fail_ci_if_error: false
