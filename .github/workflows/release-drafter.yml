@@ -54,14 +54,18 @@ jobs:
           fi
 
           version_tag="${datepre}.${newpost}"
-          semver="${datepre}.${newpost}"
+          # release-drafter v7 parses versions with semver (no leading zeroes in numeric parts).
+          year="${datepre%%.*}"
+          month="${datepre#*.}"
+          month=$((10#$month))
+          semver="${year}.${month}.${newpost}"
           echo "Current version: ${latest:-<no tags>}"
           echo "New target version: $version_tag (Release Drafter version: $semver)"
           echo "version=$version_tag" >> "$GITHUB_OUTPUT"
           echo "semver=$semver" >> "$GITHUB_OUTPUT"
 
       - name: Run Release Drafter
-        uses: release-drafter/release-drafter@v7.3.0
+        uses: release-drafter/release-drafter@693d20e7c1ce1a81d3a41962f85914253b518449 # v7.3.1
         with:
           tag: ${{ steps.version.outputs.version }}
           name: ${{ steps.version.outputs.version }}
