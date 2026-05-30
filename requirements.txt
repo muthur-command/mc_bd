@@ -86,7 +86,7 @@ cryptography==46.0.3
     # via muthur-command-backend
 dnspython==2.8.0
     # via email-validator
-dulwich==1.0.0
+dulwich==1.2.5
     # via muthur-command-backend
 ecdsa==0.19.1
     # via python-jose
