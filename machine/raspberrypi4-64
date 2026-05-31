@@ -4,4 +4,4 @@ FROM ${BUILD_FROM}
 RUN apk --no-cache add \
     raspberrypi-utils
 
-LABEL io.mcio.machine="raspberrypi4-64"
+LABEL io.mcos.machine="raspberrypi4-64"

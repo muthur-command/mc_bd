@@ -1,4 +1,4 @@
 ARG BUILD_FROM=ghcr.io/muthur-command/aarch64-muthurcommand:latest
 FROM ${BUILD_FROM}
 
-LABEL io.mcio.machine="neardi-pi-3"
+LABEL io.mcos.machine="neardi-pi-3"

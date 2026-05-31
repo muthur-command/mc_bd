@@ -4,4 +4,4 @@ FROM ${BUILD_FROM}
 RUN apk --no-cache add \
     libva-intel-driver
 
-LABEL io.mcio.machine="generic-x86-64"
+LABEL io.mcos.machine="generic-x86-64"

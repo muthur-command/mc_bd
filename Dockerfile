@@ -33,7 +33,7 @@ FROM ${BUILD_FROM}
 ARG SERVER_TYPE=api
 
 LABEL \
-    io.mcio.type="mc_bd" \
+    io.mcos.type="mc_bd" \
     org.opencontainers.image.authors="Muthur Command Authors" \
     org.opencontainers.image.description="Muthur Command backend service on Python" \
     org.opencontainers.image.licenses="GPL-3.0-or-later" \
