@@ -9,5 +9,9 @@ updates:
     labels:
       - dependency
       - github_actions
+    groups:
+      muthur-command-builder:
+        patterns:
+          - "muthur-command/builder*"
     cooldown:
       default-days: 7
