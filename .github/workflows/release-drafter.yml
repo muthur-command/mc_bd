@@ -20,6 +20,7 @@ jobs:
         with:
           fetch-depth: 0
           fetch-tags: true
+          persist-credentials: true
 
       - name: Find Next Version
         id: version
@@ -63,6 +64,38 @@ jobs:
           echo "New target version: $version_tag (Release Drafter version: $semver)"
           echo "version=$version_tag" >> "$GITHUB_OUTPUT"
           echo "semver=$semver" >> "$GITHUB_OUTPUT"
+
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version-file: ".python-version"
+
+      - name: Install uv
+        run: pip install uv
+
+      # Align pyproject / const / ci.yaml with the draft release tag before publish (verify-version).
+      - name: Sync version files to draft release tag
+        id: sync_version
+        env:
+          TARGET_VERSION: ${{ steps.version.outputs.version }}
+          UV_SYSTEM_PYTHON: "true"
+        run: |
+          set -eo pipefail
+          current=$(uv run python -c "import tomllib; print(tomllib.load(open('pyproject.toml','rb'))['project']['version'])")
+          if [[ "$current" == "$TARGET_VERSION" ]]; then
+            echo "Version files already at $TARGET_VERSION"
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          uv run python script/version_bump.py sync --set-version "$TARGET_VERSION" --commit
+          echo "changed=true" >> "$GITHUB_OUTPUT"
+
+      - name: Push version sync commit
+        if: steps.sync_version.outputs.changed == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git push
 
       - name: Run Release Drafter
         uses: release-drafter/release-drafter@693d20e7c1ce1a81d3a41962f85914253b518449 # v7.3.1

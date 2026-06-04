@@ -158,13 +158,18 @@ def write_version(version: Version) -> None:
     CONST_PATH.write_text(content, encoding='utf8')
 
 
-def write_version_metadata(version: Version) -> None:
-    """Update pyproject.toml [project] version."""
+def write_version_metadata(version: Version, *, release_tag: str | None = None) -> None:
+    """Update pyproject.toml [project] version.
+
+    release_tag: exact CalVer string (e.g. 2026.06.0) for git tag / verify-version equality.
+    When omitted, uses str(version) (packaging may normalize 2026.06.0 -> 2026.6.0).
+    """
+    tag = release_tag if release_tag is not None else str(version)
     content = PYPROJECT_PATH.read_text(encoding='utf8')
 
     content = re.sub(
         r'(version\W+=\W).+\n',
-        f'\\g<1>"{version}"\n',
+        f'\\g<1>"{tag}"\n',
         content,
         count=1,
     )
@@ -195,16 +200,25 @@ def main() -> None:
     parser = argparse.ArgumentParser(description='Bump MUTHUR Command backend version')
     parser.add_argument(
         'type',
-        help='The type of bump to apply.',
-        choices=['beta', 'dev', 'patch', 'minor', 'nightly'],
+        help='The type of bump to apply (sync: align files to --set-version / release tag).',
+        choices=['beta', 'dev', 'patch', 'minor', 'nightly', 'sync'],
     )
     parser.add_argument('--commit', action='store_true', help='Create a version bump commit.')
     parser.add_argument('--set-nightly-version', help='Set the nightly version to', type=str)
+    parser.add_argument(
+        '--set-version',
+        help='Exact release tag for sync (must match Release Drafter / verify-version)',
+        type=str,
+    )
 
     arguments = parser.parse_args()
 
     if arguments.set_nightly_version and arguments.type != 'nightly':
         parser.error('--set-nightly-version requires type set to nightly.')
+    if arguments.type == 'sync' and not arguments.set_version:
+        parser.error('sync requires --set-version.')
+    if arguments.set_version and arguments.type != 'sync':
+        parser.error('--set-version is only valid with type sync.')
 
     if arguments.commit and subprocess.run(['git', 'diff', '--quiet'], check=False, cwd=_REPO_ROOT).returncode == 1:
         print('Cannot use --commit because git is dirty.')
@@ -215,22 +229,32 @@ def main() -> None:
         print(f'Run this script from the repository root: {_REPO_ROOT}', file=sys.stderr)
         sys.exit(1)
 
-    current = read_version()
-    bumped = bump_version(current, arguments.type, nightly_version=arguments.set_nightly_version)
-    # --set-nightly-version is authoritative from CI; release may differ from const.py.
-    if not arguments.set_nightly_version:
-        assert bumped > current, 'BUG! New version is not newer than old version'
+    if arguments.type == 'sync':
+        release_tag = arguments.set_version.strip()
+        bumped = Version(release_tag)
+        write_version(bumped)
+        write_version_metadata(bumped, release_tag=release_tag)
+        write_ci_workflow(bumped)
+        print(release_tag)
+        commit_label = release_tag
+    else:
+        current = read_version()
+        bumped = bump_version(current, arguments.type, nightly_version=arguments.set_nightly_version)
+        # --set-nightly-version is authoritative from CI; release may differ from const.py.
+        if not arguments.set_nightly_version:
+            assert bumped > current, 'BUG! New version is not newer than old version'
 
-    write_version(bumped)
-    write_version_metadata(bumped)
-    write_ci_workflow(bumped)
-    print(bumped)
+        write_version(bumped)
+        write_version_metadata(bumped)
+        write_ci_workflow(bumped)
+        print(bumped)
+        commit_label = str(bumped)
 
     if not arguments.commit:
         return
 
     subprocess.run(
-        ['git', 'commit', '-nam', f'Bump version to {bumped}'],
+        ['git', 'commit', '-nam', f'Bump version to {commit_label}'],
         check=True,
         cwd=_REPO_ROOT,
     )
