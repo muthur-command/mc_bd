@@ -1,0 +1,25 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "enabledManagers": ["custom.regex"],
+  "customManagers": [
+    {
+      "customType": "regex",
+      "fileMatch": ["^\\.github/workflows/builder\\.yml$"],
+      "matchStrings": ["BASE_IMAGE_VERSION: \"(?<currentValue>[^\"]+)\""],
+      "datasourceTemplate": "github-releases",
+      "depNameTemplate": "muthur-command/docker",
+      "versioningTemplate": "loose"
+    }
+  ],
+  "packageRules": [
+    {
+      "matchManagers": ["custom.regex"],
+      "matchDepNames": ["muthur-command/docker"],
+      "groupName": "muthurcommand-base",
+      "extractVersion": "^(?:mc_)?(?<version>.*)$",
+      "commitMessageTopic": "muthurcommand-base",
+      "commitMessageExtra": "to {{newVersion}}"
+    }
+  ],
+  "schedule": ["every 12 hours"]
+}
