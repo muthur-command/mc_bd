@@ -150,7 +150,7 @@ def write_version(version: Version) -> None:
     )
     content = re.sub(
         r'PATCH_VERSION: Final = .*\n',
-        f'PATCH_VERSION: Final = "{patch}"\n',
+        f"PATCH_VERSION: Final = '{patch}'\n",
         content,
         count=1,
     )

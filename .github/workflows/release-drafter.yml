@@ -70,24 +70,29 @@ jobs:
         with:
           python-version-file: ".python-version"
 
-      - name: Install uv
-        run: pip install uv
+      # version_bump.py only needs packaging; do not use `uv run` here (it creates .venv / may touch
+      # the lockfile and makes `git diff` non-empty before --commit).
+      - name: Install packaging for version sync
+        run: pip install packaging
 
       # Align pyproject / const / ci.yaml with the draft release tag before publish (verify-version).
       - name: Sync version files to draft release tag
         id: sync_version
         env:
           TARGET_VERSION: ${{ steps.version.outputs.version }}
-          UV_SYSTEM_PYTHON: "true"
         run: |
           set -eo pipefail
-          current=$(uv run python -c "import tomllib; print(tomllib.load(open('pyproject.toml','rb'))['project']['version'])")
+          current=$(python3 -c "import tomllib; print(tomllib.load(open('pyproject.toml','rb'))['project']['version'])")
           if [[ "$current" == "$TARGET_VERSION" ]]; then
             echo "Version files already at $TARGET_VERSION"
             echo "changed=false" >> "$GITHUB_OUTPUT"
             exit 0
           fi
-          uv run python script/version_bump.py sync --set-version "$TARGET_VERSION" --commit
+          python3 script/version_bump.py sync --set-version "$TARGET_VERSION"
+          pip install uv
+          UV_SYSTEM_PYTHON=1 uv lock
+          git add backend/const.py pyproject.toml .github/workflows/ci.yaml uv.lock
+          git commit -m "Bump version to ${TARGET_VERSION}"
           echo "changed=true" >> "$GITHUB_OUTPUT"
 
       - name: Push version sync commit
