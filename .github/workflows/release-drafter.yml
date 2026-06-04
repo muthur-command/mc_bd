@@ -91,16 +91,15 @@ jobs:
           python3 script/version_bump.py sync --set-version "$TARGET_VERSION"
           pip install uv
           UV_SYSTEM_PYTHON=1 uv lock
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add backend/const.py pyproject.toml .github/workflows/ci.yaml uv.lock
           git commit -m "Bump version to ${TARGET_VERSION}"
           echo "changed=true" >> "$GITHUB_OUTPUT"
 
       - name: Push version sync commit
         if: steps.sync_version.outputs.changed == 'true'
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git push
+        run: git push
 
       - name: Run Release Drafter
         uses: release-drafter/release-drafter@693d20e7c1ce1a81d3a41962f85914253b518449 # v7.3.1
