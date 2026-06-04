@@ -1815,7 +1815,7 @@ wheels = [
 
 [[package]]
 name = "muthur-command-backend"
-version = "2026.6.0"
+version = "2026.6.1"
 source = { editable = "." }
 dependencies = [
     { name = "aiosmtplib" },
