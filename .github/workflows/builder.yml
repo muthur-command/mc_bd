@@ -14,7 +14,7 @@ env:
   UV_HTTP_TIMEOUT: 180
   UV_SYSTEM_PYTHON: "true"
   # Base image version from https://github.com/muthur-command/docker
-  BASE_IMAGE_VERSION: "2026.04.1"
+  BASE_IMAGE_VERSION: "2026.06.1"
   ARCHITECTURES: '["amd64", "aarch64"]'
 
 permissions: {}
