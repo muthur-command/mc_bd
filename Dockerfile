@@ -25,10 +25,11 @@ ENV UV_COMPILE_BYTECODE=1 \
     UV_PROJECT_ENVIRONMENT=/usr/local \
     UV_HTTP_TIMEOUT=${UV_HTTP_TIMEOUT} \
     UV_HTTP_RETRIES=${UV_HTTP_RETRIES} \
-    UV_SYSTEM_PYTHON=true
+    UV_SYSTEM_PYTHON=true \
+    UV_PYTHON=/usr/local/bin/python3
 
 RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync --locked --no-default-groups --group server --no-install-project
+    uv sync --locked --no-default-groups --group server --no-install-project --python /usr/local/bin/python3
 
 # Runtime base image is passed as BUILD_FROM (pinned in builder.yml).
 # hadolint ignore=DL3006
