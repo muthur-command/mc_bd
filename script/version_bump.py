@@ -91,19 +91,18 @@ def bump_version(  # noqa: C901
             to_change['pre'] = ('b', 0)
 
     elif bump_type == 'nightly':
-        if not version.is_devrelease:
-            raise ValueError('Can only be run on dev release')
-
-        new_dev = _utcnow_compact()
         if nightly_version:
             new_version = Version(nightly_version)
             if not new_version.is_devrelease:
                 raise ValueError('Nightly version must be a dev version')
-            # CI passes the canonical dev line (e.g. from version.json); const.py may lag
-            # on another YYYY.M.N — still stamp exactly what CI requested.
-            if new_version.release != version.release:
+            # CI dev line is authoritative when const.py is stable or on another YYYY.M.N.
+            if not version.is_devrelease or new_version.release != version.release:
                 return new_version
             new_dev = new_version.dev
+        else:
+            if not version.is_devrelease:
+                raise ValueError('Can only be run on dev release')
+            new_dev = _utcnow_compact()
 
         if not isinstance(new_dev, int):
             new_dev = int(new_dev)
@@ -293,6 +292,12 @@ def test_bump_version(monkeypatch: Any) -> None:
     ) == Version('2024.4.0.dev202403271315')
     with pytest.raises(ValueError, match='Can only be run on dev release'):
         bump_version(Version('0.56.0'), 'nightly')
+    # CI --set-nightly-version: const.py may still be a stable release line.
+    assert bump_version(
+        Version('2024.4.0'),
+        'nightly',
+        nightly_version='2024.4.0.dev202403271315',
+    ) == Version('2024.4.0.dev202403271315')
     assert bump_version(
         Version('0.56.0.dev0'),
         'nightly',
