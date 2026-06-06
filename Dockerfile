@@ -1,6 +1,7 @@
 ARG SERVER_TYPE=api
 ARG BUILD_FROM=ghcr.io/muthur-command/base-python:3.14-alpine3.23-2026.06.2
 
+# hadolint ignore=DL3006
 FROM ${BUILD_FROM} AS builder
 
 COPY . /mc
