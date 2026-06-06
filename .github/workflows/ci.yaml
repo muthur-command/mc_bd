@@ -297,6 +297,8 @@ jobs:
       fail-fast: false
       matrix:
         python-version: ${{ fromJson(needs.info.outputs.python_versions) }}
+    env:
+      UV_PYTHON: ${{ matrix.python-version }}
     steps:
       - uses: actions/checkout@v6.0.2
         with:
@@ -318,7 +320,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-py${{ matrix.python-version }}-${{ needs.info.outputs.python_cache_key }}-
       - name: Sync dependencies
-        run: uv sync
+        run: uv sync --python ${{ matrix.python-version }}
       - name: Prepare .env for tests
         run: cp backend/.env.example backend/.env
 
@@ -472,6 +474,8 @@ jobs:
       matrix:
         python-version: ${{ fromJson(needs.info.outputs.python_versions) }}
         group: ${{ fromJson(needs.info.outputs.test_groups) }}
+    env:
+      UV_PYTHON: ${{ matrix.python-version }}
     steps:
       - uses: actions/checkout@v6.0.2
         with:
@@ -491,7 +495,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-py${{ matrix.python-version }}-${{ needs.info.outputs.python_cache_key }}-
       - name: Sync dependencies
-        run: uv sync
+        run: uv sync --python ${{ matrix.python-version }}
       - name: Prepare .env
         run: cp backend/.env.example backend/.env
       - name: Register Python problem matcher
@@ -521,7 +525,7 @@ jobs:
             cov+=(--junitxml=junit.xml)
           fi
           set -x
-          uv run pytest -q --tb=short -m "not integration" \
+          uv run --python ${{ matrix.python-version }} pytest -q --tb=short -m "not integration" \
             "${cov[@]}" \
             "${paths[@]}" 2>&1 | tee "pytest-${PYTHON_VERSION}-${TEST_GROUP}.txt" || exit "${PIPESTATUS[0]}"
       - uses: actions/upload-artifact@v4
@@ -566,6 +570,8 @@ jobs:
       matrix:
         python-version: ${{ fromJson(needs.info.outputs.python_versions) }}
         group: ${{ fromJson(needs.info.outputs.test_groups) }}
+    env:
+      UV_PYTHON: ${{ matrix.python-version }}
     steps:
       - uses: actions/checkout@v6.0.2
         with:
@@ -584,7 +590,7 @@ jobs:
             needs.info.outputs.python_cache_key }}-${{ hashFiles('uv.lock', 'pyproject.toml') }}
           restore-keys: |
             ${{ runner.os }}-py${{ matrix.python-version }}-${{ needs.info.outputs.python_cache_key }}-
-      - run: uv sync
+      - run: uv sync --python ${{ matrix.python-version }}
       - run: cp backend/.env.example backend/.env
       - name: Run pytest (plugin partial)
         timeout-minutes: 30
@@ -601,7 +607,7 @@ jobs:
             cov+=(--cov-report=xml)
             cov+=(--junitxml=junit.xml)
           fi
-          uv run pytest -q --tb=short -m "not integration" \
+          uv run --python ${{ matrix.python-version }} pytest -q --tb=short -m "not integration" \
             "${cov[@]}" \
             "backend/plugin/${TEST_GROUP}/tests"
       - uses: actions/upload-artifact@v4
