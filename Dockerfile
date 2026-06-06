@@ -1,14 +1,7 @@
 ARG SERVER_TYPE=api
-ARG BUILD_FROM=python:3.12-alpine
+ARG BUILD_FROM=ghcr.io/muthur-command/base-python:3.14-alpine3.23-2026.06.2
 
-FROM ghcr.io/astral-sh/uv:python3.12-bookworm-slim AS builder
-
-# Used for build Python packages (DL3008: pinning every .deb revision is brittle for this image)
-# hadolint ignore=DL3008
-RUN sed -i 's/deb.debian.org/mirrors.ustc.edu.cn/g' /etc/apt/sources.list.d/debian.sources \
-    && apt-get update \
-    && apt-get install -y --no-install-recommends gcc python3-dev \
-    && rm -rf /var/lib/apt/lists/*
+FROM ${BUILD_FROM} AS builder
 
 COPY . /mc
 WORKDIR /mc
@@ -16,17 +9,27 @@ WORKDIR /mc
 ARG UV_HTTP_TIMEOUT=180
 ARG UV_HTTP_RETRIES=5
 
+# Install deps into the same Alpine Python that runs the container (not Debian).
+# hadolint ignore=DL3018
+RUN apk add --no-cache \
+        build-base \
+        libffi-dev \
+        linux-headers \
+        musl-dev \
+    && pip3 install --no-cache-dir uv==0.10.9
+
 ENV UV_COMPILE_BYTECODE=1 \
     UV_NO_CACHE=1 \
     UV_LINK_MODE=copy \
     UV_PROJECT_ENVIRONMENT=/usr/local \
     UV_HTTP_TIMEOUT=${UV_HTTP_TIMEOUT} \
-    UV_HTTP_RETRIES=${UV_HTTP_RETRIES}
+    UV_HTTP_RETRIES=${UV_HTTP_RETRIES} \
+    UV_SYSTEM_PYTHON=true
 
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --locked --no-default-groups --group server --no-install-project
 
-# Runtime base image is passed as BUILD_FROM (pinned in builder.yml); default ARG uses an explicit tag.
+# Runtime base image is passed as BUILD_FROM (pinned in builder.yml).
 # hadolint ignore=DL3006
 FROM ${BUILD_FROM}
 

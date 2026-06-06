@@ -4,7 +4,7 @@ set -eu
 
 cd /mc/backend
 
-exec /usr/local/bin/celery -A app.task.celery worker \
+exec python3 -m celery -A app.task.celery worker \
   --pool=gevent \
   --concurrency "${CELERY_WORKER_CONCURRENCY:-2}" \
   --prefetch-multiplier "${CELERY_WORKER_PREFETCH_MULTIPLIER:-1}" \
