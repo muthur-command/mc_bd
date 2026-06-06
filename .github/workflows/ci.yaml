@@ -151,7 +151,7 @@ jobs:
           if [[ -f .python-version ]]; then
             default_python=$(tr -d '\n' < .python-version)
           else
-            default_python="3.12"
+            default_python="3.14"
           fi
           all_python_versions=$(jq -cn --arg default_python "${default_python}" \
             --argjson additional_python_versions "${ADDITIONAL_PYTHON_VERSIONS}" \
@@ -231,7 +231,7 @@ jobs:
         uses: astral-sh/setup-uv@v8.1.0
       - name: Set up Python
         run: |
-          default_python=$(test -f .python-version && tr -d '\n' < .python-version || echo '3.12')
+          default_python=$(test -f .python-version && tr -d '\n' < .python-version || echo '3.14')
           uv python install "${default_python}"
       - name: Install lint dependencies
         run: uv sync --only-group lint
@@ -337,6 +337,10 @@ jobs:
         with:
           persist-credentials: false
       - uses: astral-sh/setup-uv@v8.1.0
+      - name: Set up Python
+        run: |
+          default_python=$(test -f .python-version && tr -d '\n' < .python-version || echo '3.14')
+          uv python install "${default_python}"
       - name: Verify lockfile
         run: uv lock --check
 
@@ -377,7 +381,7 @@ jobs:
       - uses: astral-sh/setup-uv@v8.1.0
       - name: Set up Python
         run: |
-          default_python=$(test -f .python-version && tr -d '\n' < .python-version || echo '3.12')
+          default_python=$(test -f .python-version && tr -d '\n' < .python-version || echo '3.14')
           uv python install "${default_python}"
       - run: uv sync
       - name: List locked packages
