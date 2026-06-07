@@ -1851,6 +1851,7 @@ dependencies = [
     { name = "pydantic-settings" },
     { name = "pymysql" },
     { name = "python-jose" },
+    { name = "python-on-whales" },
     { name = "python-socketio" },
     { name = "redis", extra = ["hiredis"] },
     { name = "rtoml" },
@@ -1914,6 +1915,7 @@ requires-dist = [
     { name = "pydantic-settings", specifier = ">=2.12.0" },
     { name = "pymysql", specifier = ">=1.1.2" },
     { name = "python-jose", specifier = ">=3.5.0" },
+    { name = "python-on-whales", specifier = ">=0.81.0" },
     { name = "python-socketio", specifier = ">=5.16.0" },
     { name = "redis", extras = ["hiredis"], specifier = ">=7.1.0" },
     { name = "rtoml", specifier = ">=0.13.0" },
@@ -2649,6 +2651,19 @@ source = { registry = "https://mirrors.aliyun.com/pypi/simple" }
 sdist = { url = "https://mirrors.aliyun.com/pypi/packages/78/96/804520d0850c7db98e5ccb70282e29208723f0964e88ffd9d0da2f52ea09/python_multipart-0.0.21.tar.gz", hash = "sha256:7137ebd4d3bbf70ea1622998f902b97a29434a9e8dc40eb203bbcf7c2a2cba92" }
 wheels = [
     { url = "https://mirrors.aliyun.com/pypi/packages/aa/76/03af049af4dcee5d27442f71b6924f01f3efb5d2bd34f23fcd563f2cc5f5/python_multipart-0.0.21-py3-none-any.whl", hash = "sha256:cf7a6713e01c87aa35387f4774e812c4361150938d20d232800f75ffcf266090" },
+]
+
+[[package]]
+name = "python-on-whales"
+version = "0.81.0"
+source = { registry = "https://mirrors.aliyun.com/pypi/simple" }
+dependencies = [
+    { name = "pydantic" },
+    { name = "typing-extensions" },
+]
+sdist = { url = "https://mirrors.aliyun.com/pypi/packages/e9/81/4b545de811e41ff90762a1c7045fcae215f20f4114eebddedab8eab6f63e/python_on_whales-0.81.0.tar.gz", hash = "sha256:bb6172014e3fe949f908092748bddf34df758cb92c2c3d0536b75bf236abce1b" }
+wheels = [
+    { url = "https://mirrors.aliyun.com/pypi/packages/a9/cb/5049e041a1d0e6f6cb6ac8737a8215fb4e67cb147f140ef31e67361dc61a/python_on_whales-0.81.0-py3-none-any.whl", hash = "sha256:6d5f81f56d0f95fd311a7cce29a01a1a60841074e4936000dc5f2dc9a7ffafac" },
 ]
 
 [[package]]
