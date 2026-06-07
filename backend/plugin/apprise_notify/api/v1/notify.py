@@ -1,16 +1,15 @@
 """Apprise 通道 CRUD、发送、历史"""
 
-from __future__ import annotations
-
 import math
 
-from typing import TYPE_CHECKING, Annotated, Any
+from typing import Annotated, Any
 
 import apprise
 
-from fastapi import APIRouter, Body, Depends, HTTPException, Query
+from fastapi import APIRouter, Body, HTTPException, Query
 from pydantic import AliasChoices, BaseModel, ConfigDict, Field
 from sqlalchemy import func, select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.common.response.response_schema import ResponseModel, response_base
 from backend.common.security.jwt import DependsJwtAuth
@@ -20,9 +19,6 @@ from backend.plugin.apprise_notify.model.apprise_notify import (
     AppriseNotifyLogRecord,
 )
 from backend.plugin.apprise_notify.service.apprise_send import mask_apprise_url, send_apprise
-
-if TYPE_CHECKING:
-    from sqlalchemy.ext.asyncio import AsyncSession
 
 router = APIRouter(dependencies=[DependsJwtAuth])
 
