@@ -185,6 +185,16 @@ async def test_register_init_startup_and_shutdown() -> None:
         lim.init = AsyncMock()
         sf.init = AsyncMock()
         sf.shutdown = AsyncMock()
+        call_order: list[str] = []
+
+        async def _redis_init() -> None:
+            call_order.append('redis')
+
+        async def _create_tables() -> None:
+            call_order.append('create_tables')
+
+        rc.init.side_effect = _redis_init
+        ct.side_effect = _create_tables
 
         async with register_init(app):
             ct.assert_awaited_once()
@@ -192,6 +202,7 @@ async def test_register_init_startup_and_shutdown() -> None:
             lim.init.assert_awaited_once()
             sf.init.assert_awaited_once()
             ctask.assert_called_once()
+            assert call_order == ['redis', 'create_tables']
 
         sf.shutdown.assert_awaited_once()
         rc.aclose.assert_awaited_once()

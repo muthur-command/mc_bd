@@ -18,6 +18,11 @@ from backend.common.log import log
 from backend.common.model import MappedBase
 from backend.core.conf import settings
 
+# Gunicorn 多 worker 并发 lifespan 时串行建表，避免 duplicate sequence 错误。
+CREATE_TABLES_LOCK_KEY = 'mc:schema:create_tables'
+CREATE_TABLES_LOCK_TIMEOUT = 300
+CREATE_TABLES_LOCK_BLOCKING_TIMEOUT = 120
+
 
 def create_database_url(*, unittest: bool = False, with_database: bool = True) -> URL:
     """
@@ -99,9 +104,20 @@ async def get_db_transaction() -> AsyncGenerator[AsyncSession, None]:
 
 
 async def create_tables() -> None:
-    """创建数据库表"""
-    async with async_engine.begin() as coon:
-        await coon.run_sync(MappedBase.metadata.create_all)
+    """创建数据库表（Redis 分布式锁保证多 worker 下只执行一次 DDL）。"""
+    from backend.database.redis import redis_client
+
+    try:
+        async with redis_client.lock(
+            CREATE_TABLES_LOCK_KEY,
+            timeout=CREATE_TABLES_LOCK_TIMEOUT,
+            blocking_timeout=CREATE_TABLES_LOCK_BLOCKING_TIMEOUT,
+        ):
+            async with async_engine.begin() as coon:
+                await coon.run_sync(MappedBase.metadata.create_all)
+    except Exception as e:
+        log.error('创建数据库表失败 {}', e)
+        sys.exit()
 
 
 async def drop_tables() -> None:

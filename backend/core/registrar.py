@@ -1,5 +1,3 @@
-import os
-
 from asyncio import create_task
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
@@ -44,11 +42,9 @@ async def register_init(app: FastAPI) -> AsyncGenerator[None, None]:
     :param app: FastAPI 应用实例
     :return:
     """
-    # 创建数据库表
-    await create_tables()
-
-    # 初始化 redis
+    # 先连 Redis（建表需要分布式锁），再创建数据库表
     await redis_client.init()
+    await create_tables()
 
     # 初始化 limiter
     await FastAPILimiter.init(
@@ -111,9 +107,8 @@ def register_static_file(app: FastAPI) -> None:
     :param app: FastAPI 应用实例
     :return:
     """
-    # 上传静态资源
-    if not os.path.exists(UPLOAD_DIR):
-        os.makedirs(UPLOAD_DIR)
+    # 上传静态资源（gunicorn 多 worker 并发启动时需 exist_ok）
+    UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
     app.mount('/static/upload', StaticFiles(directory=UPLOAD_DIR), name='upload')
 
     # 固有静态资源
