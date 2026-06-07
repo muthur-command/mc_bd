@@ -155,13 +155,6 @@ def install_requirements(plugin: str | None) -> None:
         if not missing:
             continue
 
-        if settings.ENVIRONMENT == 'prod':
-            raise PluginInstallError(
-                f'插件 {plugin} 缺少预装依赖：{", ".join(missing)}。'
-                '生产镜像应在构建阶段通过 pyproject.toml / uv sync 安装全部依赖，'
-                '容器启动时不应访问 PyPI。请更新 mc_bd 镜像后重试。',
-            )
-
         pip_install = _plugin_pip_install_cmd(str(requirements_file))
 
         max_retries = settings.PLUGIN_PIP_MAX_RETRY
