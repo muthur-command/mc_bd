@@ -65,6 +65,38 @@ def _has_pip_module() -> bool:
     return importlib.util.find_spec('pip') is not None
 
 
+def _requirement_is_installed(req: Requirement) -> bool:
+    """Return True when a requirements.txt line is already satisfied."""
+    for candidate in {req.name, req.name.replace('-', '_'), req.name.replace('_', '-')}:
+        try:
+            dist = distribution(candidate)
+        except PackageNotFoundError:
+            continue
+        if not req.specifier:
+            return True
+        if req.specifier.contains(dist.version, prereleases=True):
+            return True
+
+    module_name = req.name.replace('-', '_')
+    return importlib.util.find_spec(module_name) is not None
+
+
+def _missing_requirements(requirements_file: Path) -> list[str]:
+    missing: list[str] = []
+    with requirements_file.open(encoding='utf-8') as f:
+        for line in f:
+            line = line.strip()
+            if not line or line.startswith('#'):
+                continue
+            try:
+                req = Requirement(line)
+            except Exception as e:
+                raise PluginInstallError(f'插件依赖 {line} 格式错误: {e!s}') from e
+            if not _requirement_is_installed(req):
+                missing.append(line)
+    return missing
+
+
 def _plugin_pip_install_cmd(requirements_file: str) -> list[str]:
     """
     构造安装插件依赖的命令。
@@ -105,7 +137,7 @@ def _plugin_pip_uninstall_cmd(requirements_file: str) -> list[str]:
     return cmd
 
 
-def install_requirements(plugin: str | None) -> None:  # noqa: C901
+def install_requirements(plugin: str | None) -> None:
     """
     安装插件依赖
 
@@ -116,43 +148,39 @@ def install_requirements(plugin: str | None) -> None:  # noqa: C901
 
     for plugin in plugins:
         requirements_file = PLUGIN_DIR / plugin / 'requirements.txt'
-        missing_dependencies = False
-        if os.path.exists(requirements_file):
-            with open(requirements_file, encoding='utf-8') as f:
-                for line in f:
-                    line = line.strip()
-                    if not line or line.startswith('#'):
-                        continue
-                    try:
-                        req = Requirement(line)
-                        dependency = req.name.lower()
-                    except Exception as e:
-                        raise PluginInstallError(f'插件 {plugin} 依赖 {line} 格式错误: {e!s}') from e
-                    try:
-                        distribution(dependency)
-                    except PackageNotFoundError:
-                        missing_dependencies = True
+        if not requirements_file.is_file():
+            continue
 
-        if missing_dependencies:
-            pip_install = _plugin_pip_install_cmd(requirements_file)
+        missing = _missing_requirements(requirements_file)
+        if not missing:
+            continue
 
-            max_retries = settings.PLUGIN_PIP_MAX_RETRY
-            for attempt in range(max_retries):
-                try:
-                    subprocess.check_call(
-                        pip_install,
-                        stdout=subprocess.DEVNULL,
-                        stderr=subprocess.DEVNULL,
-                    )
-                    break
-                except subprocess.TimeoutExpired:
-                    if attempt == max_retries - 1:
-                        raise PluginInstallError(f'插件 {plugin} 依赖安装超时')
-                    continue
-                except subprocess.CalledProcessError as e:
-                    if attempt == max_retries - 1:
-                        raise PluginInstallError(f'插件 {plugin} 依赖安装失败：{e}') from e
-                    continue
+        if settings.ENVIRONMENT == 'prod':
+            raise PluginInstallError(
+                f'插件 {plugin} 缺少预装依赖：{", ".join(missing)}。'
+                '生产镜像应在构建阶段通过 pyproject.toml / uv sync 安装全部依赖，'
+                '容器启动时不应访问 PyPI。请更新 mc_bd 镜像后重试。',
+            )
+
+        pip_install = _plugin_pip_install_cmd(str(requirements_file))
+
+        max_retries = settings.PLUGIN_PIP_MAX_RETRY
+        for attempt in range(max_retries):
+            try:
+                subprocess.check_call(
+                    pip_install,
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                )
+                break
+            except subprocess.TimeoutExpired:
+                if attempt == max_retries - 1:
+                    raise PluginInstallError(f'插件 {plugin} 依赖安装超时')
+                continue
+            except subprocess.CalledProcessError as e:
+                if attempt == max_retries - 1:
+                    raise PluginInstallError(f'插件 {plugin} 依赖安装失败：{e}') from e
+                continue
 
 
 def uninstall_requirements(plugin: str) -> None:

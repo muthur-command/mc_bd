@@ -4,9 +4,16 @@ from unittest.mock import patch
 
 import pytest
 
+from packaging.requirements import Requirement
+
 from backend.core.conf import settings
 from backend.plugin.errors import PluginInstallError
-from backend.plugin.requirements import _plugin_pip_install_cmd, _plugin_pip_uninstall_cmd
+from backend.plugin.requirements import (
+    _plugin_pip_install_cmd,
+    _plugin_pip_uninstall_cmd,
+    _requirement_is_installed,
+    install_requirements,
+)
 
 
 def test_plugin_pip_install_cmd_prefers_uv() -> None:
@@ -43,3 +50,23 @@ def test_plugin_pip_uninstall_cmd_uses_uv() -> None:
     with patch('backend.plugin.requirements._resolve_uv_executable', return_value='/uv'):
         cmd = _plugin_pip_uninstall_cmd('/r.txt')
     assert cmd[:4] == ['/uv', 'pip', 'uninstall', '-r']
+
+
+def test_requirement_is_installed_python_on_whales() -> None:
+    assert _requirement_is_installed(Requirement('python-on-whales')) is True
+
+
+def test_install_requirements_prod_skips_runtime_pip(tmp_path) -> None:
+    plugin_dir = tmp_path / 'demo'
+    plugin_dir.mkdir()
+    (plugin_dir / 'requirements.txt').write_text('missing-plugin-xyz\n', encoding='utf-8')
+
+    with (
+        patch('backend.plugin.requirements.PLUGIN_DIR', tmp_path),
+        patch('backend.plugin.requirements.get_plugins', return_value=['demo']),
+        patch.object(settings, 'ENVIRONMENT', 'prod'),
+        patch('backend.plugin.requirements.subprocess.check_call') as mock_install,
+    ):
+        with pytest.raises(PluginInstallError, match='缺少预装依赖'):
+            install_requirements('demo')
+    mock_install.assert_not_called()
