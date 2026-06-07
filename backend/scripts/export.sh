@@ -1,3 +1,3 @@
 #!/usr/bin/env bash
 
-uv export --no-hashes -o requirements.txt
+uv export -o requirements.txt --no-hashes
