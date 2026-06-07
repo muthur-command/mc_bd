@@ -1,0 +1,89 @@
+# Local mc_bd stack: PostgreSQL + Redis + API container.
+# Used by script/local-docker.sh — not for production / MCOS Supervisor.
+name: mc_bd-local
+
+services:
+  mc_postgres:
+    image: postgres:16-alpine
+    container_name: mc_bd_local_postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: "123456"
+      # mc_bd uses DATABASE_SCHEMA=mc (see backend/core/conf.py), not POSTGRES_DB.
+      POSTGRES_DB: mc
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d mc"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    ports:
+      - "${DOCKER_POSTGRES_MAP_PORT:-15432}:5432"
+    networks:
+      mcos:
+        aliases:
+          - mc_postgres
+
+  mc_redis:
+    image: redis:7-alpine
+    container_name: mc_bd_local_redis
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    ports:
+      - "${DOCKER_REDIS_MAP_PORT:-16379}:6379"
+    networks:
+      mcos:
+        aliases:
+          - mc_redis
+
+  mc_bd:
+    build:
+      context: ../../..
+      dockerfile: Dockerfile
+      args:
+        BUILD_FROM: ${BUILD_FROM:-ghcr.io/muthur-command/base-python:3.14-alpine3.23-2026.06.2}
+    image: mc_bd:local
+    container_name: mc_bd_local
+    depends_on:
+      mc_postgres:
+        condition: service_healthy
+      mc_redis:
+        condition: service_healthy
+    environment:
+      APP_ROLE: api
+      # dev keeps /docs and /openapi enabled (prod disables them in conf.py).
+      ENVIRONMENT: dev
+      DATABASE_TYPE: postgresql
+      DATABASE_HOST: mc_postgres
+      DATABASE_PORT: "5432"
+      DATABASE_USER: postgres
+      DATABASE_PASSWORD: "123456"
+      REDIS_HOST: mc_redis
+      REDIS_PORT: "6379"
+      REDIS_PASSWORD: ""
+      REDIS_DATABASE: "0"
+      TOKEN_SECRET_KEY: "1VkVF75nsNABBjK_7-qz7GtzNy3AMvktc9TCPwKczCk"
+      APP_PORT: "8001"
+      CELERY_BROKER_REDIS_DATABASE: "1"
+      OAUTH2_GITHUB_CLIENT_ID: test
+      OAUTH2_GITHUB_CLIENT_SECRET: test
+      OAUTH2_GOOGLE_CLIENT_ID: test
+      OAUTH2_GOOGLE_CLIENT_SECRET: test
+    ports:
+      - "${MC_BD_HOST_PORT:-8001}:8001"
+    volumes:
+      - mc_bd_data:/mc/data
+    networks:
+      mcos:
+        aliases:
+          - mc_bd
+
+networks:
+  mcos:
+    name: mc_bd_local_net
+
+volumes:
+  mc_bd_data:
