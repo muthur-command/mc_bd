@@ -299,7 +299,7 @@ sqlalchemy-crud-plus==1.13.1
     # via muthur-command-backend
 sqlparse==0.5.5
     # via muthur-command-backend
-starlette==0.50.0
+starlette==1.0.1
     # via
     #   fastapi
     #   starlette-context
