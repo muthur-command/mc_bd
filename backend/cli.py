@@ -385,7 +385,7 @@ async def get_sql_scripts() -> list[str]:
     sql_scripts = []
     db_script_dir = MYSQL_SCRIPT_DIR if DataBaseType.mysql == settings.DATABASE_TYPE else POSTGRESQL_SCRIPT_DIR
     main_sql_file = (
-        db_script_dir / 'init_test_data.sql'
+        db_script_dir / 'mc_init_default_data.sql'
         if PrimaryKeyType.autoincrement == settings.DATABASE_PK_MODE
         else db_script_dir / 'init_snowflake_test_data.sql'
     )

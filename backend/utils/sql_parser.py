@@ -35,7 +35,7 @@ async def parse_sql_script(filepath: str) -> list[str]:
             contents += additional_contents
 
     statements = split(contents)
-    allowed_starts = ('select', 'insert', 'create', 'drop', 'alter')
+    allowed_starts = ('select', 'insert', 'create', 'drop', 'alter', 'comment')
     result = []
     for statement in statements:
         stmt_stripped = statement.strip()

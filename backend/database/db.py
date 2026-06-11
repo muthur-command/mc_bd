@@ -104,8 +104,12 @@ async def get_db_transaction() -> AsyncGenerator[AsyncSession, None]:
 
 
 async def create_tables() -> None:
-    """创建数据库表（Redis 分布式锁保证多 worker 下只执行一次 DDL）。"""
+    """创建数据库表并在首次启动时灌入默认数据。
+
+    Redis 分布式锁保证多 worker 下 DDL 与 seed 只执行一次。
+    """
     from backend.database.redis import redis_client
+    from backend.database.seed import seed_default_data_if_empty
 
     try:
         async with redis_client.lock(
@@ -115,6 +119,7 @@ async def create_tables() -> None:
         ):
             async with async_engine.begin() as coon:
                 await coon.run_sync(MappedBase.metadata.create_all)
+            await seed_default_data_if_empty()
     except Exception as e:
         log.error('创建数据库表失败 {}', e)
         sys.exit()

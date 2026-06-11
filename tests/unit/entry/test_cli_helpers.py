@@ -57,7 +57,7 @@ async def test_get_sql_scripts_includes_main_and_plugin_sql(tmp_path) -> None:
 
     sql_dir = tmp_path / 'pg'
     sql_dir.mkdir()
-    init_file = sql_dir / 'init_test_data.sql'
+    init_file = sql_dir / 'mc_init_default_data.sql'
     init_file.write_text('-- empty', encoding='utf-8')
 
     fake_ap = MagicMock()
