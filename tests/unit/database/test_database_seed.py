@@ -1,6 +1,5 @@
 """database.seed：首次启动默认数据灌入。"""
 
-from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -62,7 +61,7 @@ async def test_seed_default_data_if_empty_skips_when_seeded() -> None:
 @pytest.mark.asyncio
 async def test_seed_default_data_if_empty_runs_sql_when_empty(tmp_path) -> None:
     sql_file = tmp_path / DEFAULT_DATA_SQL_FILENAME
-    sql_file.write_text("INSERT INTO sys_user VALUES (1);", encoding='utf-8')
+    sql_file.write_text('INSERT INTO sys_user VALUES (1);', encoding='utf-8')
 
     with (
         patch('backend.database.seed.get_default_data_sql_path', return_value=sql_file),
