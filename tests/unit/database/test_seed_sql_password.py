@@ -1,6 +1,7 @@
 """mc_init_default_data.sql 中的测试密码须与注释一致（123456）。"""
 
 import re
+
 from pathlib import Path
 
 import pytest
