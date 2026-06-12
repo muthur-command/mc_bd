@@ -249,7 +249,7 @@ python-engineio==4.13.0
     # via python-socketio
 python-jose==3.5.0
     # via muthur-command-backend
-python-multipart==0.0.21
+python-multipart==0.0.27
     # via fastapi
 python-on-whales==0.81.0
     # via muthur-command-backend
