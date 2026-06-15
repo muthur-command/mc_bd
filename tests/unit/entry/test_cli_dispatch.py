@@ -30,12 +30,12 @@ def test_run_invokes_granian_serve() -> None:
 
 
 def test_run_exits_when_granian_missing() -> None:
-    import backend.cli as cli_mod
-
     import builtins
 
     import cappa
     import pytest
+
+    import backend.cli as cli_mod
 
     real_import = builtins.__import__
 
