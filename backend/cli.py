@@ -10,7 +10,6 @@ from typing import Annotated, Literal
 
 import anyio
 import cappa
-import granian
 
 from cappa.output import error_format
 from rich.panel import Panel
@@ -306,6 +305,14 @@ def run(host: str, port: int, reload: bool, workers: int) -> None:  # noqa: FBT0
     panel_content.append('https://xxx.com')
 
     console.print(Panel(panel_content, title=f'mc (v{__version__})', border_style='purple', padding=(1, 2)))
+    try:
+        import granian
+    except ImportError as exc:
+        raise cappa.Exit(
+            'granian 未安装。`mc dev` 仅供开发使用，请在开发环境执行 '
+            '`uv sync --group dev` 或 `pip install granian` 后重试。',
+            code=1,
+        ) from exc
     granian.Granian(
         target='backend.main:app',
         interface='asgi',
@@ -327,20 +334,6 @@ def run_celery_worker(log_level: Literal['info', 'debug']) -> None:
 def run_celery_beat(log_level: Literal['info', 'debug']) -> None:
     try:
         subprocess.run(['celery', '-A', 'backend.app.task.celery', 'beat', '-l', f'{log_level}'])
-    except KeyboardInterrupt:
-        pass
-
-
-def run_celery_flower(port: int, basic_auth: str) -> None:
-    try:
-        subprocess.run([
-            'celery',
-            '-A',
-            'backend.app.task.celery',
-            'flower',
-            f'--port={port}',
-            f'--basic-auth={basic_auth}',
-        ])
     except KeyboardInterrupt:
         pass
 
@@ -573,26 +566,10 @@ class Beat:
         run_celery_beat(log_level=self.log_level)
 
 
-@cappa.command(help='从当前主机启动 Celery flower 服务', default_long=True)
-@dataclass
-class Flower:
-    port: Annotated[
-        int,
-        cappa.Arg(default=8555, help='提供服务的主机端口号'),
-    ]
-    basic_auth: Annotated[
-        str,
-        cappa.Arg(default='admin:123456', help='页面登录的用户名和密码'),
-    ]
-
-    def __call__(self) -> None:
-        run_celery_flower(port=self.port, basic_auth=self.basic_auth)
-
-
 @cappa.command(help='运行 Celery 服务')
 @dataclass
 class Celery:
-    subcmd: cappa.Subcommands[Worker | Beat | Flower]
+    subcmd: cappa.Subcommands[Worker | Beat]
 
 
 @cappa.command(help='新增插件', default_long=True)
