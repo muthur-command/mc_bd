@@ -1,0 +1,61 @@
+networks:
+  mc_network:
+    name: mc_network
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.10.10.0/24
+
+volumes:
+  mc_postgres:
+    name: mc_postgres
+  mc_redis:
+    name: mc_redis
+  mc_rabbitmq:
+    name: mc_rabbitmq
+
+services:
+  mc_postgres:
+    image: postgres:16
+    ports:
+      - "${DOCKER_MAP_POSTGRES_PORT:-5432}:5432"
+    container_name: mc_postgres
+    restart: no
+    environment:
+      POSTGRES_DB: mc
+      POSTGRES_PASSWORD: bnm@jkl
+      TZ: America/Los_Angeles
+    volumes:
+      - mc_postgres:/var/lib/postgresql/data
+    networks:
+      - mc_network
+
+  mc_redis:
+    image: redis:latest
+    ports:
+      - "${DOCKER_MAP_REDIS_PORT:-6379}:6379"
+    container_name: mc_redis
+    restart: no
+    environment:
+      - TZ=America/Los_Angeles
+    volumes:
+      - mc_redis:/data
+    networks:
+      - mc_network
+
+  mc_rabbitmq:
+    hostname: mc_rabbitmq
+    image: rabbitmq:3.13.7
+    ports:
+      - "${DOCKER_MAP_RABBITMA_UI_PORT:-15672}:15672"
+      - "${DOCKER_MAP_RABBITMA_PORT:-5672}:5672"
+    container_name: mc_rabbitmq
+    restart: no
+    environment:
+      - RABBITMQ_DEFAULT_USER=guest
+      - RABBITMQ_DEFAULT_PASS=guest
+    volumes:
+      - mc_rabbitmq:/var/lib/rabbitmq
+    networks:
+      - mc_network

@@ -35,7 +35,7 @@ async def parse_sql_script(filepath: str) -> list[str]:
             contents += additional_contents
 
     statements = split(contents)
-    allowed_starts = ('select', 'insert', 'create', 'drop', 'alter')
+    allowed_starts = ('select', 'insert', 'create', 'drop', 'alter', 'comment')
     result = []
     for statement in statements:
         stmt_stripped = statement.strip()
@@ -46,6 +46,8 @@ async def parse_sql_script(filepath: str) -> list[str]:
         if not to_check:
             continue
         if not any(to_check.lower().startswith(_) for _ in allowed_starts):
-            raise errors.RequestError(msg='SQL 脚本文件中存在非法操作，仅允许 SELECT、INSERT、CREATE、DROP、ALTER')
+            raise errors.RequestError(
+                msg='SQL 脚本文件中存在非法操作，仅允许 SELECT、INSERT、CREATE、DROP、ALTER、COMMENT'
+            )
         result.append(statement)
     return result
