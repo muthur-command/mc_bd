@@ -24,8 +24,6 @@ async-timeout==5.0.1 ; python_full_version < '3.11.3'
     # via
     #   asyncpg
     #   redis
-asyncmy==0.2.11
-    # via muthur-command-backend
 asyncpg==0.31.0
     # via muthur-command-backend
 backports-asyncio-runner==1.2.0 ; python_full_version < '3.11'
@@ -41,7 +39,6 @@ cappa==0.31.0
 celery==5.6.2
     # via
     #   celery-aio-pool
-    #   flower
     #   muthur-command-backend
 celery-aio-pool==0.1.0rc8
     # via muthur-command-backend
@@ -64,7 +61,6 @@ click==8.3.1
     #   click-didyoumean
     #   click-plugins
     #   click-repl
-    #   granian
     #   rich-toolkit
     #   typer
     #   uvicorn
@@ -112,11 +108,7 @@ fastapi-oauth20==0.0.3
     # via muthur-command-backend
 fastapi-pagination==0.15.6
     # via muthur-command-backend
-flower==2.0.1
-    # via muthur-command-backend
 gevent==25.9.1
-    # via muthur-command-backend
-granian==2.7.4
     # via muthur-command-backend
 greenlet==3.3.0
     # via
@@ -139,8 +131,6 @@ httpx==0.28.1
     # via
     #   fastapi
     #   fastapi-oauth20
-humanize==4.15.0
-    # via flower
 idna==3.11
     # via
     #   anyio
@@ -189,8 +179,6 @@ pluggy==1.6.0
     #   pytest
     #   pytest-cov
 prek==0.3.0
-prometheus-client==0.24.1
-    # via flower
 prompt-toolkit==3.0.52
     # via click-repl
 psutil==7.2.1
@@ -228,8 +216,6 @@ pygments==2.19.2
     # via
     #   pytest
     #   rich
-pymysql==1.1.2
-    # via muthur-command-backend
 pytest==9.0.2
     # via
     #   pytest-asyncio
@@ -255,8 +241,6 @@ python-on-whales==0.81.0
     # via muthur-command-backend
 python-socketio==5.16.0
     # via muthur-command-backend
-pytz==2025.2
-    # via flower
 pyyaml==6.0.3
     # via
     #   apprise
@@ -314,8 +298,6 @@ tomli==2.4.0 ; python_full_version <= '3.11'
     #   coverage
     #   fastapi-cli
     #   pytest
-tornado==6.5.4
-    # via flower
 type-lens==0.2.6
     # via cappa
 typer==0.21.1
@@ -360,7 +342,7 @@ ua-parser==1.0.1
     # via user-agents
 ua-parser-builtins==202601
     # via ua-parser
-urllib3==2.6.3
+urllib3==2.7.0
     # via
     #   dulwich
     #   requests

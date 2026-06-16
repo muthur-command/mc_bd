@@ -44,6 +44,10 @@ async def test_create_tables_runs_metadata_create_all_under_redis_lock() -> None
     with (
         patch('backend.database.redis.redis_client', redis_client),
         patch('backend.database.db.async_engine', engine),
+        patch(
+            'backend.database.seed.seed_default_data_if_empty',
+            new_callable=AsyncMock,
+        ),
     ):
         await create_tables()
 

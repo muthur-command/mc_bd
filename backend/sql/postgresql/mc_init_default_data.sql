@@ -66,8 +66,8 @@ VALUES
 
 INSERT INTO sys_user (id, uuid, username, nickname, password, salt, email, phone, avatar, status, is_superuser, is_staff, is_multi_login, join_time, last_login_time, last_password_changed_time, created_time, updated_time)
 VALUES
-(1, gen_random_uuid()::text, 'superadmin', 'superadmin', '$2b$12$BEUGt8drkw9U0dsdKkH6xuNgo3sRdytHme8fzbc3Y6xrRe59htPPC', decode('2432622431322442455547743864726b773955306473644b6b48367875', 'hex'), 'superadmin@mc.com', NULL, NULL, 1, TRUE, TRUE, TRUE, now(), now(), now(), now(), NULL),
-(2, gen_random_uuid()::text, 'user', 'user', '$2b$12$BEUGt8drkw9U0dsdKkH6xuNgo3sRdytHme8fzbc3Y6xrRe59htPPC', decode('2432622431322442455547743864726b773955306473644b6b48367875', 'hex'), 'user@mc.com', NULL, NULL, 1, FALSE, FALSE, FALSE, now(), now(), now(), now(), NULL);
+(1, gen_random_uuid()::text, 'superadmin', 'superadmin', '$2b$12$MPTegVRZ./e014xrNGWWPumqTD8QF2njT8xPPGltMoFETwq50iNGS', decode('243262243132244d5054656756525a2e2f6530313478724e4757575075', 'hex'), 'superadmin@mc.com', NULL, NULL, 1, TRUE, TRUE, TRUE, now(), now(), now(), now(), NULL),
+(2, gen_random_uuid()::text, 'user', 'user', '$2b$12$MPTegVRZ./e014xrNGWWPumqTD8QF2njT8xPPGltMoFETwq50iNGS', decode('243262243132244d5054656756525a2e2f6530313478724e4757575075', 'hex'), 'user@mc.com', NULL, NULL, 1, FALSE, FALSE, FALSE, now(), now(), now(), now(), NULL);
 
 INSERT INTO sys_user_role (id, user_id, role_id)
 VALUES

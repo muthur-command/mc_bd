@@ -59,8 +59,8 @@ VALUES
 
 INSERT INTO sys_user (id, uuid, username, nickname, password, salt, email, phone, avatar, status, is_superuser, is_staff, is_multi_login, join_time, last_login_time, last_password_changed_time, created_time, updated_time)
 VALUES
-(1, UUID(), 'superadmin', 'superadmin', '$2b$12$BEUGt8drkw9U0dsdKkH6xuNgo3sRdytHme8fzbc3Y6xrRe59htPPC', UNHEX('2432622431322442455547743864726b773955306473644b6b48367875'), 'superadmin@mc.com', NULL, NULL, 1, TRUE, TRUE, TRUE, NOW(), NOW(), NOW(), NOW(), NULL),
-(2, UUID(), 'user', 'user', '$2b$12$BEUGt8drkw9U0dsdKkH6xuNgo3sRdytHme8fzbc3Y6xrRe59htPPC', UNHEX('2432622431322442455547743864726b773955306473644b6b48367875'), 'user@mc.com', NULL, NULL, 1, FALSE, FALSE, FALSE, NOW(), NOW(), NOW(), NOW(), NULL);
+(1, UUID(), 'superadmin', 'superadmin', '$2b$12$MPTegVRZ./e014xrNGWWPumqTD8QF2njT8xPPGltMoFETwq50iNGS', UNHEX('243262243132244d5054656756525a2e2f6530313478724e4757575075'), 'superadmin@mc.com', NULL, NULL, 1, TRUE, TRUE, TRUE, NOW(), NOW(), NOW(), NOW(), NULL),
+(2, UUID(), 'user', 'user', '$2b$12$MPTegVRZ./e014xrNGWWPumqTD8QF2njT8xPPGltMoFETwq50iNGS', UNHEX('243262243132244d5054656756525a2e2f6530313478724e4757575075'), 'user@mc.com', NULL, NULL, 1, FALSE, FALSE, FALSE, NOW(), NOW(), NOW(), NOW(), NULL);
 
 INSERT INTO sys_user_role (id, user_id, role_id)
 VALUES

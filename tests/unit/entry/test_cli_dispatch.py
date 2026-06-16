@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import sys
 
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -11,19 +12,43 @@ def test_run_invokes_granian_serve() -> None:
     import backend.cli as cli_mod
 
     server = MagicMock()
+    granian_mod = MagicMock()
+    granian_mod.Granian.return_value = server
+
     with patch.object(cli_mod, 'console'):
-        with patch('backend.cli.granian.Granian') as GranianCls:
-            GranianCls.return_value = server
+        with patch.dict(sys.modules, {'granian': granian_mod}):
             cli_mod.run(host='127.0.0.1', port=9001, reload=True, workers=2)
 
-            GranianCls.assert_called_once()
-            kwargs = GranianCls.call_args.kwargs
+            granian_mod.Granian.assert_called_once()
+            kwargs = granian_mod.Granian.call_args.kwargs
             assert kwargs['target'] == 'backend.main:app'
             assert kwargs['address'] == '127.0.0.1'
             assert kwargs['port'] == 9001
             assert kwargs['reload'] is False
             assert kwargs['workers'] == 2
             server.serve.assert_called_once()
+
+
+def test_run_exits_when_granian_missing() -> None:
+    import builtins
+
+    import cappa
+    import pytest
+
+    import backend.cli as cli_mod
+
+    real_import = builtins.__import__
+
+    def import_without_granian(name, globals=None, locals=None, fromlist=(), level=0):
+        if name == 'granian':
+            raise ImportError('No module named granian')
+        return real_import(name, globals, locals, fromlist, level)
+
+    with patch.object(cli_mod, 'console'):
+        with patch.object(builtins, '__import__', side_effect=import_without_granian):
+            with pytest.raises(cappa.Exit) as ei:
+                cli_mod.run(host='127.0.0.1', port=9001, reload=True, workers=1)
+            assert ei.value.code == 1
 
 
 def test_run_celery_worker_calls_subprocess() -> None:
@@ -40,21 +65,6 @@ def test_run_celery_beat_calls_subprocess() -> None:
     with patch.object(cli_mod.subprocess, 'run') as sp:
         cli_mod.run_celery_beat('info')
     sp.assert_called_once_with(['celery', '-A', 'backend.app.task.celery', 'beat', '-l', 'info'])
-
-
-def test_run_celery_flower_calls_subprocess() -> None:
-    import backend.cli as cli_mod
-
-    with patch.object(cli_mod.subprocess, 'run') as sp:
-        cli_mod.run_celery_flower(9555, 'u:p')
-    sp.assert_called_once_with([
-        'celery',
-        '-A',
-        'backend.app.task.celery',
-        'flower',
-        '--port=9555',
-        '--basic-auth=u:p',
-    ])
 
 
 def test_cli_main_runs_invoke_async() -> None:
