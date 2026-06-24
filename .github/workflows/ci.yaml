@@ -308,7 +308,7 @@ jobs:
       - name: Set up Python ${{ matrix.python-version }}
         run: uv python install ${{ matrix.python-version }}
       - name: Cache uv + venv
-        uses: actions/cache@v5
+        uses: actions/cache@v5.0.5
         id: uv-cache
         with:
           path: |
@@ -484,7 +484,7 @@ jobs:
       - name: Set up Python ${{ matrix.python-version }}
         run: uv python install ${{ matrix.python-version }}
       - name: Restore uv + venv
-        uses: actions/cache@v5
+        uses: actions/cache@v5.0.5
         with:
           path: |
             ~/.cache/uv
@@ -580,7 +580,7 @@ jobs:
       - name: Set up Python ${{ matrix.python-version }}
         run: uv python install ${{ matrix.python-version }}
       - name: Restore uv + venv
-        uses: actions/cache@v5
+        uses: actions/cache@v5.0.5
         with:
           path: |
             ~/.cache/uv
