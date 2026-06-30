@@ -239,7 +239,7 @@ python-multipart==0.0.21
     # via fastapi
 python-on-whales==0.81.0
     # via muthur-command-backend
-python-socketio==5.16.0
+python-socketio==5.16.2
     # via muthur-command-backend
 pyyaml==6.0.3
     # via
