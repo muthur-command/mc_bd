@@ -103,7 +103,7 @@ jobs:
           echo "key=$(lsb_release -rs)-apt-${CACHE_VERSION}-${MC_SHORT_VERSION}" >> "$GITHUB_OUTPUT"
 
       - name: Filter for core changes
-        uses: dorny/paths-filter@fbd0ab8f3e69293af611ebaee6363fc25e6d187d # v4.0.1
+        uses: dorny/paths-filter@7b450fff21473bca461d4b92ce414b9d0420d706 # v4.0.2
         id: core_filter
         with:
           filters: .github/ci/core_files.yaml
@@ -119,7 +119,7 @@ jobs:
           echo "---- plugin_paths ----"; cat .github/ci/plugin_paths.yaml
 
       - name: Filter for plugin changes
-        uses: dorny/paths-filter@fbd0ab8f3e69293af611ebaee6363fc25e6d187d # v4.0.1
+        uses: dorny/paths-filter@7b450fff21473bca461d4b92ce414b9d0420d706 # v4.0.2
         id: plugins
         with:
           filters: .github/ci/plugin_paths.yaml
