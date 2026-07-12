@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Bump MUTHUR Command backend version (const + pyproject; optional CI workflow)."""
+"""Bump MUTHUR Command backend version (const + pyproject)."""
 
 from __future__ import annotations
 
@@ -19,7 +19,6 @@ _REPO_ROOT = _SCRIPT_DIR.parent
 
 CONST_PATH = _REPO_ROOT / 'backend' / 'const.py'
 PYPROJECT_PATH = _REPO_ROOT / 'pyproject.toml'
-CI_WORKFLOW_PATH = _REPO_ROOT / '.github' / 'workflows' / 'ci.yaml'
 
 
 def _utcnow_compact() -> str:
@@ -176,24 +175,6 @@ def write_version_metadata(version: Version, *, release_tag: str | None = None) 
     PYPROJECT_PATH.write_text(content, encoding='utf8')
 
 
-def write_ci_workflow(version: Version) -> None:
-    """Update CI workflow MC_SHORT_VERSION when .github/workflows/ci.yaml exists."""
-    if not CI_WORKFLOW_PATH.is_file():
-        return
-
-    content = CI_WORKFLOW_PATH.read_text(encoding='utf8')
-
-    short_version = '.'.join(str(version).split('.', maxsplit=2)[:2])
-    content = re.sub(
-        r'(\n\W+MC_SHORT_VERSION: )"[^"]+"\n',
-        rf'\g<1>"{short_version}"\n',
-        content,
-        count=1,
-    )
-
-    CI_WORKFLOW_PATH.write_text(content, encoding='utf8')
-
-
 def main() -> None:
     """Execute script (run from mc_bd repo root: uv run python script/version_bump.py …)."""
     parser = argparse.ArgumentParser(description='Bump MUTHUR Command backend version')
@@ -233,7 +214,6 @@ def main() -> None:
         bumped = Version(release_tag)
         write_version(bumped)
         write_version_metadata(bumped, release_tag=release_tag)
-        write_ci_workflow(bumped)
         print(release_tag)
         commit_label = release_tag
     else:
@@ -245,7 +225,6 @@ def main() -> None:
 
         write_version(bumped)
         write_version_metadata(bumped)
-        write_ci_workflow(bumped)
         print(bumped)
         commit_label = str(bumped)
 

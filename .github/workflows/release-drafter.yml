@@ -8,8 +8,6 @@ on:
 permissions:
   contents: write
   pull-requests: read
-  # version_bump sync commits .github/workflows/ci.yaml (MC_SHORT_VERSION).
-  workflows: write
 
 jobs:
   update_release_draft:
@@ -77,7 +75,7 @@ jobs:
       - name: Install packaging for version sync
         run: pip install packaging
 
-      # Align pyproject / const / ci.yaml with the draft release tag before publish (verify-version).
+      # Align pyproject / const with the draft release tag before publish (verify-version).
       - name: Sync version files to draft release tag
         id: sync_version
         env:
@@ -95,7 +93,7 @@ jobs:
           UV_SYSTEM_PYTHON=1 uv lock
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add backend/const.py pyproject.toml .github/workflows/ci.yaml uv.lock
+          git add backend/const.py pyproject.toml uv.lock
           git commit -m "Bump version to ${TARGET_VERSION}"
           echo "changed=true" >> "$GITHUB_OUTPUT"
 

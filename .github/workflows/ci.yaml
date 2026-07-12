@@ -1,4 +1,4 @@
-# script/version_bump.py 会同步更新 env.MC_SHORT_VERSION（主.次）。
+# CI cache keys derive MC_SHORT_VERSION from pyproject.toml at runtime.
 ---
 name: CI
 run-name: "${{ github.event_name == 'workflow_dispatch' && format('CI: {0}', github.ref_name) || '' }}"
@@ -43,7 +43,6 @@ env:
   CACHE_VERSION: 3
   UV_CACHE_VERSION: 1
   MYPY_CACHE_VERSION: 1
-  MC_SHORT_VERSION: "2026.6"
   ADDITIONAL_PYTHON_VERSIONS: '["3.10","3.11","3.13","3.14"]'
   MARIADB_VERSIONS: "[]"
   POSTGRESQL_VERSIONS: "[]"
@@ -95,12 +94,14 @@ jobs:
         env:
           HASH_PYPROJECT: ${{ hashFiles('pyproject.toml', 'uv.lock') }}
         run: |
-          echo "key=venv-${CACHE_VERSION}-${MC_SHORT_VERSION}-${HASH_PYPROJECT}" >> "$GITHUB_OUTPUT"
+          mc_short_version=$(python3 -c "import tomllib; v=tomllib.load(open('pyproject.toml','rb'))['project']['version']; print('.'.join(v.split('.')[:2]))")
+          echo "key=venv-${CACHE_VERSION}-${mc_short_version}-${HASH_PYPROJECT}" >> "$GITHUB_OUTPUT"
 
       - name: Generate partial apt restore key
         id: generate_apt_cache_key
         run: |
-          echo "key=$(lsb_release -rs)-apt-${CACHE_VERSION}-${MC_SHORT_VERSION}" >> "$GITHUB_OUTPUT"
+          mc_short_version=$(python3 -c "import tomllib; v=tomllib.load(open('pyproject.toml','rb'))['project']['version']; print('.'.join(v.split('.')[:2]))")
+          echo "key=$(lsb_release -rs)-apt-${CACHE_VERSION}-${mc_short_version}" >> "$GITHUB_OUTPUT"
 
       - name: Filter for core changes
         uses: dorny/paths-filter@7b450fff21473bca461d4b92ce414b9d0420d706 # v4.0.2
