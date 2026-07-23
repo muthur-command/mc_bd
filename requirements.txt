@@ -172,7 +172,7 @@ packaging==26.0
     #   gunicorn
     #   kombu
     #   pytest
-pillow==12.1.0
+pillow==12.3.0
     # via fast-captcha
 pluggy==1.6.0
     # via
