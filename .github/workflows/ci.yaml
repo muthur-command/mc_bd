@@ -85,7 +85,7 @@ jobs:
       skip_coverage: ${{ steps.collect.outputs.skip_coverage }}
     steps:
       - name: Check out code from GitHub
-        uses: actions/checkout@v7.0.0
+        uses: actions/checkout@v7.0.1
         with:
           persist-credentials: false
 
@@ -219,7 +219,7 @@ jobs:
       && github.event.inputs.mypy-only != 'true'
       && github.event.inputs.audit-licenses-only != 'true'
     steps:
-      - uses: actions/checkout@v7.0.0
+      - uses: actions/checkout@v7.0.1
         with:
           persist-credentials: false
       - name: Register problem matchers
@@ -252,7 +252,7 @@ jobs:
       && github.event.inputs.mypy-only != 'true'
       && github.event.inputs.audit-licenses-only != 'true'
     steps:
-      - uses: actions/checkout@v7.0.0
+      - uses: actions/checkout@v7.0.1
         with:
           persist-credentials: false
       - name: Run zizmor
@@ -277,7 +277,7 @@ jobs:
         file:
           - Dockerfile
     steps:
-      - uses: actions/checkout@v7.0.0
+      - uses: actions/checkout@v7.0.1
         with:
           persist-credentials: false
       - name: Register hadolint problem matcher
@@ -301,7 +301,7 @@ jobs:
     env:
       UV_PYTHON: ${{ matrix.python-version }}
     steps:
-      - uses: actions/checkout@v7.0.0
+      - uses: actions/checkout@v7.0.1
         with:
           persist-credentials: false
       - name: Install uv
@@ -336,7 +336,7 @@ jobs:
       && github.event.inputs.mypy-only != 'true'
       && github.event.inputs.audit-licenses-only != 'true'
     steps:
-      - uses: actions/checkout@v7.0.0
+      - uses: actions/checkout@v7.0.1
         with:
           persist-credentials: false
       - uses: astral-sh/setup-uv@v8.3.2
@@ -359,7 +359,7 @@ jobs:
       && needs.info.outputs.requirements == 'true'
       && github.event_name == 'pull_request'
     steps:
-      - uses: actions/checkout@v7.0.0
+      - uses: actions/checkout@v7.0.1
         with:
           persist-credentials: false
       - uses: actions/dependency-review-action@v5.0.0
@@ -378,7 +378,7 @@ jobs:
       || github.event.inputs.audit-licenses-only == 'true')
       && needs.info.outputs.requirements == 'true'
     steps:
-      - uses: actions/checkout@v7.0.0
+      - uses: actions/checkout@v7.0.1
         with:
           persist-credentials: false
       - uses: astral-sh/setup-uv@v8.3.2
@@ -442,7 +442,7 @@ jobs:
       needs.info.outputs.lint_only != 'true'
       && needs.info.outputs.test_full_suite == 'true'
     steps:
-      - uses: actions/checkout@v7.0.0
+      - uses: actions/checkout@v7.0.1
         with:
           persist-credentials: false
       - name: Write pytest buckets
@@ -478,7 +478,7 @@ jobs:
     env:
       UV_PYTHON: ${{ matrix.python-version }}
     steps:
-      - uses: actions/checkout@v7.0.0
+      - uses: actions/checkout@v7.0.1
         with:
           persist-credentials: false
       - uses: astral-sh/setup-uv@v8.3.2
@@ -574,7 +574,7 @@ jobs:
     env:
       UV_PYTHON: ${{ matrix.python-version }}
     steps:
-      - uses: actions/checkout@v7.0.0
+      - uses: actions/checkout@v7.0.1
         with:
           persist-credentials: false
       - uses: astral-sh/setup-uv@v8.3.2
@@ -639,7 +639,7 @@ jobs:
       needs.info.outputs.skip_coverage != 'true'
       && needs.info.outputs.test_full_suite == 'true'
     steps:
-      - uses: actions/checkout@v7.0.0
+      - uses: actions/checkout@v7.0.1
         with:
           persist-credentials: false
       - uses: actions/download-artifact@v8
@@ -665,7 +665,7 @@ jobs:
       needs.info.outputs.skip_coverage != 'true'
       && needs.info.outputs.test_full_suite == 'false'
     steps:
-      - uses: actions/checkout@v7.0.0
+      - uses: actions/checkout@v7.0.1
         with:
           persist-credentials: false
       - uses: actions/download-artifact@v8
