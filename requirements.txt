@@ -78,7 +78,7 @@ colorama==0.4.6 ; sys_platform == 'win32'
     #   uvicorn
 coverage==7.13.5
     # via pytest-cov
-cryptography==48.0.1
+cryptography==50.0.0
     # via muthur-command-backend
 dnspython==2.8.0
     # via email-validator
