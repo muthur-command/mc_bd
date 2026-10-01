@@ -165,7 +165,7 @@ mdurl==0.1.2
     # via markdown-it-py
 msgspec==0.20.0
     # via muthur-command-backend
-oauthlib==3.3.1
+oauthlib==4.0.0
     # via requests-oauthlib
 packaging==26.0
     # via
