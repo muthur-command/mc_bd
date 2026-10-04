@@ -1,5 +1,5 @@
 version = 1
-revision = 3
+revision = 5
 requires-python = ">=3.10"
 resolution-markers = [
     "python_full_version >= '3.13'",
@@ -1488,8 +1488,9 @@ wheels = [
 
 [[package]]
 name = "muthur-command-backend"
-version = "2026.9.0"
+version = "2026.10.0"
 source = { editable = "." }
+default-groups = ["dev", "lint"]
 dependencies = [
     { name = "aiosmtplib" },
     { name = "alembic" },
