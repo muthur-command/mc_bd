@@ -16,7 +16,7 @@ anyio==4.12.1
     #   httpx
     #   starlette
     #   watchfiles
-apprise==1.9.9
+apprise==1.11.0
     # via muthur-command-backend
 asgiref==3.11.0
     # via muthur-command-backend
